@@ -1,0 +1,24 @@
+{
+  "name": "@trait-dev/cli",
+  "version": "0.1.0",
+  "description": "Distribute behavior, not framework code.",
+  "type": "module",
+  "bin": {
+    "trait": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "traits",
+    "schema",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "smoke": "node src/cli.js help"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

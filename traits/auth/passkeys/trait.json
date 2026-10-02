@@ -1,0 +1,80 @@
+{
+  "$schema": "../../../schema/trait.schema.json",
+  "schemaVersion": 1,
+  "name": "auth/passkeys",
+  "version": "0.1.0",
+  "summary": "Add passkey sign-in without replacing the application's existing identity model.",
+  "intent": "Users can register and use WebAuthn passkeys as a secure authentication method while existing sessions, account ownership rules, and recovery paths continue to work.",
+  "rules": [
+    {
+      "id": "auth.passkeys.register",
+      "text": "An authenticated user can register a passkey that is bound to their existing account."
+    },
+    {
+      "id": "auth.passkeys.authenticate",
+      "text": "A registered passkey can create a normal application session through WebAuthn authentication."
+    },
+    {
+      "id": "auth.passkeys.multiple",
+      "text": "An account can hold multiple credentials and each credential has a stable server-side identity."
+    },
+    {
+      "id": "auth.passkeys.revoke",
+      "text": "A user can list and revoke their own registered passkeys without affecting unrelated credentials."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "auth.session.existing",
+      "text": "Passkey authentication ends in the same session/account model used by the rest of the application."
+    },
+    {
+      "id": "auth.identity.no-duplicate",
+      "text": "Registering or using a passkey must not create a duplicate user for an existing account."
+    },
+    {
+      "id": "auth.recovery.preserved",
+      "text": "Existing recovery and sign-in methods remain available unless the host application explicitly disables them."
+    }
+  ],
+  "security": [
+    {
+      "id": "auth.passkeys.challenge",
+      "text": "Registration and authentication challenges are single-use, short-lived, and verified server-side."
+    },
+    {
+      "id": "auth.passkeys.origin",
+      "text": "WebAuthn origin and relying-party identity are validated from trusted server configuration, not request input."
+    },
+    {
+      "id": "auth.passkeys.counter",
+      "text": "Credential public keys and authenticator metadata needed for replay or clone detection are stored server-side."
+    },
+    {
+      "id": "auth.passkeys.ownership",
+      "text": "Credential listing and revocation enforce account ownership on the server."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "accept.passkeys.registration-roundtrip",
+      "text": "A test or equivalent executable path proves registration options, attestation verification, persistence, and subsequent lookup."
+    },
+    {
+      "id": "accept.passkeys.login-roundtrip",
+      "text": "A test or equivalent executable path proves assertion verification creates a session for the credential owner."
+    },
+    {
+      "id": "accept.passkeys.bad-challenge",
+      "text": "A stale, reused, or mismatched challenge is rejected without creating a session or credential."
+    },
+    {
+      "id": "accept.passkeys.cross-account",
+      "text": "One account cannot list or revoke another account's passkeys."
+    }
+  ],
+  "verify": {
+    "scripts": ["test", "typecheck", "lint"]
+  },
+  "guidance": "IMPLEMENTATION.md"
+}

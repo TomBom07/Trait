@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trait.dev/schema/v1/trait.schema.json",
+  "title": "Trait behavior contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "version", "summary", "intent", "rules", "invariants", "acceptance"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$"
+    },
+    "version": { "type": "string" },
+    "summary": { "type": "string", "minLength": 12 },
+    "intent": { "type": "string", "minLength": 20 },
+    "rules": { "$ref": "#/$defs/items" },
+    "invariants": { "$ref": "#/$defs/items" },
+    "security": { "$ref": "#/$defs/items" },
+    "acceptance": { "$ref": "#/$defs/items" },
+    "guidance": { "type": "string" },
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scripts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*\\.[a-z0-9._-]+$" },
+          "text": { "type": "string", "minLength": 8 }
+        }
+      }
+    }
+  }
+}
