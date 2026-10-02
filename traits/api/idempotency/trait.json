@@ -1,0 +1,62 @@
+{
+  "$schema": "../../../schema/trait.schema.json",
+  "schemaVersion": 1,
+  "name": "api/idempotency",
+  "version": "0.1.0",
+  "summary": "Make selected state-changing API operations safe to retry with an idempotency key.",
+  "intent": "Clients can retry designated mutating requests after timeouts or network failures without accidentally executing the underlying operation more than once.",
+  "rules": [
+    {
+      "id": "api.idempotency.key",
+      "text": "Protected operations accept an explicit idempotency key from the client."
+    },
+    {
+      "id": "api.idempotency.replay",
+      "text": "Repeating the same operation with the same key returns the stored result instead of executing the operation again."
+    },
+    {
+      "id": "api.idempotency.conflict",
+      "text": "Reusing a key for a materially different request is rejected as a conflict."
+    },
+    {
+      "id": "api.idempotency.scope",
+      "text": "Keys are scoped narrowly enough that one caller or operation cannot accidentally replay another caller's result."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "api.errors.existing",
+      "text": "The application's existing error and response conventions remain intact."
+    },
+    {
+      "id": "api.nonprotected.unchanged",
+      "text": "Endpoints not opted into idempotency keep their existing behavior."
+    },
+    {
+      "id": "api.transaction.atomic",
+      "text": "The idempotency record and protected side effect cannot diverge in a way that causes a successful operation to run twice."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "accept.idempotency.same-key",
+      "text": "Two equivalent requests with the same key execute the protected side effect once and return an equivalent response."
+    },
+    {
+      "id": "accept.idempotency.changed-payload",
+      "text": "The same key used with a different request fingerprint is rejected and does not execute the second side effect."
+    },
+    {
+      "id": "accept.idempotency.concurrent",
+      "text": "Concurrent requests racing on one key cannot both execute the protected operation."
+    },
+    {
+      "id": "accept.idempotency.expiry",
+      "text": "Stored keys have an explicit retention policy and expired records can be cleaned up safely."
+    }
+  ],
+  "verify": {
+    "scripts": ["test", "typecheck", "lint"]
+  },
+  "guidance": "IMPLEMENTATION.md"
+}
