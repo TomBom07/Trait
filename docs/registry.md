@@ -6,11 +6,12 @@ A registry root contains:
 
 ```text
 v1/
+  index.json
   packages/<namespace>/<name>/<version>.json
   artifacts/<sha256>.json
 ```
 
-The package descriptor maps an exact package version to a content hash and publisher. The artifact at that hash contains the complete package payload and an Ed25519 signature.
+`index.json` is a discovery catalog for search. It is deliberately non-authoritative. The package descriptor maps an exact package version to a content hash and publisher, and the artifact at that hash contains the complete package payload and an Ed25519 signature.
 
 ## Artifact identity
 
@@ -35,15 +36,17 @@ Fetching code that will steer a coding agent is an explicit operation:
 
 ```bash
 trait registry use https://traits.example/
+trait registry search passkey
 trait registry inspect auth/passkeys@1.2.3
-trait registry trust auth/passkeys@1.2.3 --fingerprint sha256:<fingerprint>
+trait registry trust auth/passkeys@1.2.3 --fingerprint sha256:<fingerprint> --label "Acme security"
+trait registry trusted
 trait registry fetch auth/passkeys@1.2.3
 trait add registry:auth/passkeys@1.2.3
 ```
 
-`inspect` validates the artifact's self-signature and prints its publisher fingerprint, hash, summary, and complete file list. It does not establish identity.
+`search` reads the registry catalog so packages can be discovered by name, summary, or publisher. Catalog entries are hints only; they never bypass artifact verification. `inspect` validates the artifact's self-signature and prints its publisher fingerprint, current local trust state, hash, summary, and complete file list. It does not establish identity.
 
-`trust` requires the expected fingerprint. That fingerprint should be checked through a channel independent of the registry when identity matters.
+`trust` requires the expected fingerprint. That fingerprint should be checked through a channel independent of the registry when identity matters. An optional local label makes the trust store easier to audit; `trait registry trusted` prints every pinned publisher and whether it is trusted or revoked.
 
 `fetch` only caches artifacts signed by a publisher already trusted in `.trait/trust.json`.
 
@@ -76,6 +79,6 @@ trait registry pack ./my-trait \
   --out ./registry
 ```
 
-The output directory can be served by an ordinary HTTPS static host.
+The output directory can be served by an ordinary HTTPS static host. Every pack updates `v1/index.json`, so a static host is enough for both package discovery and immutable artifact delivery.
 
 Private keys are read only for packing and are never copied into the registry. The artifact contains the corresponding public key.

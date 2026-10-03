@@ -56,7 +56,7 @@ trait add api/idempotency --plan
 
 When the Codex CLI is installed and authenticated, omit `--plan` to apply the behavior.
 
-Registry packages are intentionally not fetched implicitly. A remote package goes through `registry inspect → trust → fetch` before `trait add registry:…` can use the verified local cache.
+Registry packages are intentionally not fetched implicitly. `registry search` discovers packages from a non-authoritative static catalog; a remote package still goes through `inspect → trust → fetch` before `trait add registry:…` can use the verified local cache.
 
 ## Implementation and verification are separate
 
@@ -80,8 +80,10 @@ trait remove <trait> [--plan] [--agent codex]
 trait list
 trait order <trait...>
 trait registry use <url>
+trait registry search [query]
 trait registry inspect <trait@version>
-trait registry trust <trait@version> --fingerprint sha256:...
+trait registry trust <trait@version> --fingerprint sha256:... [--label name]
+trait registry trusted
 trait registry fetch <trait@version> [--offline]
 trait registry distrust <publisher>
 trait registry pack <path> --publisher <id> --key <pem> --out <dir>

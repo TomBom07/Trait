@@ -20,8 +20,8 @@ Usage:
   trait remove <namespace/name> [--agent codex] [--plan]
   trait list\n  trait order <trait...>
   trait registry use <url|path>
-  trait registry inspect <trait@version> [--registry url]
-  trait registry trust <trait@version> --fingerprint sha256:... [--registry url]
+  trait registry search [query] [--registry url]\n  trait registry inspect <trait@version> [--registry url]
+  trait registry trust <trait@version> --fingerprint sha256:... [--label name] [--registry url]\n  trait registry trusted
   trait registry fetch <trait@version> [--registry url] [--offline]
   trait registry distrust <publisher>
   trait registry pack <path> --publisher <id> --key <pem> --out <dir>
@@ -52,7 +52,8 @@ async function main(argv) {
     publisher: flag(parsed, "publisher", undefined),
     key: flag(parsed, "key", undefined),
     out: flag(parsed, "out", undefined),
-    offline: flag(parsed, "offline", false)
+    offline: flag(parsed, "offline", false),
+    label: flag(parsed, "label", undefined)
   };
 
   switch (command) {

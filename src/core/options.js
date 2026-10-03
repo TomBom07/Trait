@@ -16,7 +16,7 @@ export function parseArgs(argv) {
     }
 
     const next = argv[i + 1];
-    if (next && !next.startsWith("--") && ["agent", "registry", "fingerprint", "publisher", "key", "out"].includes(rawKey)) {
+    if (next && !next.startsWith("--") && ["agent", "registry", "fingerprint", "publisher", "key", "out", "label"].includes(rawKey)) {
       flags.set(rawKey, next);
       i += 1;
     } else {
