@@ -47,6 +47,21 @@ export function validateManifest(value) {
       if (typeof item.text !== "string" || item.text.trim().length < 8) {
         errors.push(`${field}.${item.id ?? "?"} needs text`);
       }
+
+      if (item.grader !== undefined) {
+        if (field !== "acceptance") {
+          errors.push(`${field}.${item.id ?? "?"} cannot define a grader`);
+        } else if (!item.grader || typeof item.grader !== "object" || Array.isArray(item.grader)) {
+          errors.push(`acceptance.${item.id ?? "?"}.grader must be an object`);
+        } else {
+          if (item.grader.type !== "project-script") {
+            errors.push(`acceptance.${item.id ?? "?"}.grader.type must be project-script`);
+          }
+          if (typeof item.grader.script !== "string" || !item.grader.script.trim()) {
+            errors.push(`acceptance.${item.id ?? "?"}.grader.script must name a project script`);
+          }
+        }
+      }
     }
   }
 

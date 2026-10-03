@@ -1,6 +1,7 @@
 import { runAgent } from "../core/agent.js";
 import { buildUpdateBrief } from "../core/brief.js";
 import { collectEvidence } from "../core/evidence.js";
+import { runAcceptanceGraders } from "../core/graders.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
 import { readLock, recordTrait } from "../core/state.js";
@@ -38,7 +39,8 @@ export function updateCommand(name, options, root) {
     const projectVerification = verifyProject(root, loaded.manifest);
     if (!projectVerification.ok) return 1;
 
-    const evidence = collectEvidence(root, loaded, projectVerification, { agent });
+    const graderResults = runAcceptanceGraders(root, loaded.manifest, { projectVerification });
+    const evidence = collectEvidence(root, loaded, projectVerification, { agent, graderResults });
     process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);
     if (!evidence.ok) return 1;
 

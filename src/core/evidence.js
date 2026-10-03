@@ -12,64 +12,58 @@ import { ensureTraitWorkspace } from "./state.js";
 const STATUSES = new Set(["pass", "fail", "unknown"]);
 const EVIDENCE_KINDS = new Set(["test", "code", "config", "migration", "other"]);
 
-export function collectEvidence(root, loaded, projectVerification, { agent = "codex" } = {}) {
+export function collectEvidence(
+  root,
+  loaded,
+  projectVerification,
+  { agent = "codex", graderResults = null } = {}
+) {
   ensureTraitWorkspace(root);
 
-  const stamp = runStamp();
-  const promptPath = join(root, ".trait", "runs", `${stamp}-verify.md`);
-  const schemaPath = join(root, ".trait", "runs", `${stamp}-verify.schema.json`);
-  const outputPath = join(root, ".trait", "runs", `${stamp}-verify.json`);
-  const promptRelative = relative(root, promptPath).replaceAll("\\", "/");
-  const schemaRelative = relative(root, schemaPath).replaceAll("\\", "/");
-  const outputRelative = relative(root, outputPath).replaceAll("\\", "/");
+  const deterministic = new Map((graderResults?.checks ?? []).map((check) => [check.id, check]));
+  const pending = loaded.manifest.acceptance.filter((criterion) => {
+    const check = deterministic.get(criterion.id);
+    return !check || check.status === "pending";
+  });
+  const deterministicFailed = [...deterministic.values()].some((check) => check.status === "fail");
 
-  writeFileSync(promptPath, `${buildEvidencePrompt(loaded.manifest).trim()}\n`, "utf8");
-  writeFileSync(schemaPath, `${JSON.stringify(buildEvidenceSchema(loaded.manifest), null, 2)}\n`, "utf8");
+  let modelChecks = [];
+  if (!deterministicFailed && pending.length > 0) {
+    const modelResult = collectModelEvidence(root, loaded, pending, agent);
+    if (!modelResult.ok) return modelResult;
+    modelChecks = modelResult.checks;
+  }
 
-  const result = runEvidenceAgent({
-    agent,
-    cwd: root,
-    promptPath: promptRelative,
-    schemaPath: schemaRelative,
-    outputPath: outputRelative
+  const modelById = new Map(modelChecks.map((check) => [check.id, check]));
+  const checks = loaded.manifest.acceptance.map((criterion) => {
+    const graded = deterministic.get(criterion.id);
+    if (graded && graded.status !== "pending") {
+      return {
+        id: criterion.id,
+        status: graded.status,
+        evidence: [],
+        notes: graded.notes,
+        grader: graded.grader
+      };
+    }
+
+    const modelCheck = modelById.get(criterion.id);
+    if (modelCheck) return modelCheck;
+
+    return {
+      id: criterion.id,
+      status: "unknown",
+      evidence: [],
+      notes: deterministicFailed
+        ? "Model verification was skipped because a deterministic grader failed."
+        : "No verifier result was produced for this criterion."
+    };
   });
 
-  if (result.status !== 0) {
-    return { ok: false, note: `Evidence evaluator exited with status ${result.status}.`, receipt: null };
-  }
-  if (!existsSync(outputPath)) {
-    return { ok: false, note: "Evidence evaluator did not produce a result.", receipt: null };
-  }
-
-  let raw;
-  try {
-    raw = JSON.parse(readFileSync(outputPath, "utf8"));
-  } catch (error) {
-    return { ok: false, note: `Evidence output was not valid JSON: ${error.message}`, receipt: null };
-  }
-
-  const checks = normalizeEvidence(raw, loaded.manifest, root);
-  const receipt = {
-    trait: loaded.manifest.name,
-    version: loaded.manifest.version,
-    traitChecksum: loaded.checksum,
-    verifiedAt: new Date().toISOString(),
-    overall: checks.every((check) => check.status === "pass") ? "pass" : "incomplete",
-    projectChecks: projectVerification.results,
-    checks
-  };
-  const receiptPath = evidenceReceiptPath(root, loaded.manifest.name);
-  writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
-
-  return {
-    ok: receipt.overall === "pass",
-    note: summarizeEvidence(receipt),
-    receipt,
-    receiptPath: relative(root, receiptPath).replaceAll("\\", "/")
-  };
+  return writeReceipt(root, loaded, projectVerification, checks);
 }
 
-export function inspectEvidenceReceipt(root, name, locked) {
+export function inspectEvidenceReceipt(root, name, locked, { graderResults = null } = {}) {
   if (locked.verification?.status !== "pass") {
     return { ok: false, status: "unverified", note: "no successful evidence receipt is recorded" };
   }
@@ -86,6 +80,7 @@ export function inspectEvidenceReceipt(root, name, locked) {
     return { ok: false, status: "stale", note: `the evidence receipt is unreadable: ${error.message}` };
   }
 
+  const currentGraders = new Map((graderResults?.checks ?? []).map((check) => [check.id, check]));
   const reasons = [];
   if (receipt.trait !== name) reasons.push("trait name does not match");
   if (receipt.version !== locked.version) reasons.push("trait version does not match");
@@ -98,6 +93,19 @@ export function inspectEvidenceReceipt(root, name, locked) {
       reasons.push(`${check?.id ?? "unknown criterion"} is not recorded as pass`);
       continue;
     }
+
+    if (check.grader) {
+      if (graderResults) {
+        const current = currentGraders.get(check.id);
+        if (current?.status !== "pass") {
+          reasons.push(`${check.id}: deterministic grader no longer passes`);
+        } else if (current.grader?.script !== check.grader.script) {
+          reasons.push(`${check.id}: deterministic grader configuration changed`);
+        }
+      }
+      continue;
+    }
+
     if (!Array.isArray(check.evidence) || check.evidence.length === 0) {
       reasons.push(`${check.id} has no repository evidence`);
       continue;
@@ -127,8 +135,8 @@ export function inspectEvidenceReceipt(root, name, locked) {
   };
 }
 
-export function buildEvidenceSchema(manifest) {
-  const ids = manifest.acceptance.map((item) => item.id);
+export function buildEvidenceSchema(manifest, acceptance = manifest.acceptance) {
+  const ids = acceptance.map((item) => item.id);
   return {
     type: "object",
     additionalProperties: false,
@@ -168,8 +176,8 @@ export function buildEvidenceSchema(manifest) {
   };
 }
 
-export function normalizeEvidence(raw, manifest, root) {
-  const expected = new Map(manifest.acceptance.map((item) => [item.id, item]));
+export function normalizeEvidence(raw, manifest, root, acceptance = manifest.acceptance) {
+  const expected = new Map(acceptance.map((item) => [item.id, item]));
   const returned = new Map();
 
   for (const check of Array.isArray(raw?.checks) ? raw.checks : []) {
@@ -177,7 +185,7 @@ export function normalizeEvidence(raw, manifest, root) {
     returned.set(check.id, check);
   }
 
-  return manifest.acceptance.map((criterion) => {
+  return acceptance.map((criterion) => {
     const rawCheck = returned.get(criterion.id);
     if (!rawCheck || !STATUSES.has(rawCheck.status)) {
       return {
@@ -210,8 +218,8 @@ export function normalizeEvidence(raw, manifest, root) {
   });
 }
 
-export function buildEvidencePrompt(manifest) {
-  const lines = manifest.acceptance.map((item) => `- [${item.id}] ${item.text}`).join("\n");
+export function buildEvidencePrompt(manifest, acceptance = manifest.acceptance) {
+  const lines = acceptance.map((item) => `- [${item.id}] ${item.text}`).join("\n");
   const context = [
     ...manifest.rules.map((item) => `- [${item.id}] ${item.text}`),
     ...manifest.invariants.map((item) => `- [${item.id}] ${item.text}`),
@@ -220,7 +228,7 @@ export function buildEvidencePrompt(manifest) {
 
   return `You are the read-only verifier for Trait ${manifest.name}@${manifest.version}.
 
-Inspect the current repository and evaluate every acceptance criterion exactly once. Do not edit files, install packages, or trust a previous agent's summary.
+Inspect the current repository and evaluate every acceptance criterion listed below exactly once. Criteria already established by deterministic graders are intentionally omitted. Do not edit files, install packages, or trust a previous agent's summary.
 
 Status rules:
 - pass: concrete repository evidence is sufficient to establish the criterion.
@@ -236,6 +244,67 @@ ${context}
 ${lines}
 
 Return only the structured result required by the supplied JSON schema.`;
+}
+
+function collectModelEvidence(root, loaded, acceptance, agent) {
+  const stamp = runStamp();
+  const promptPath = join(root, ".trait", "runs", `${stamp}-verify.md`);
+  const schemaPath = join(root, ".trait", "runs", `${stamp}-verify.schema.json`);
+  const outputPath = join(root, ".trait", "runs", `${stamp}-verify.json`);
+  const promptRelative = relative(root, promptPath).replaceAll("\\", "/");
+  const schemaRelative = relative(root, schemaPath).replaceAll("\\", "/");
+  const outputRelative = relative(root, outputPath).replaceAll("\\", "/");
+
+  writeFileSync(promptPath, `${buildEvidencePrompt(loaded.manifest, acceptance).trim()}\n`, "utf8");
+  writeFileSync(schemaPath, `${JSON.stringify(buildEvidenceSchema(loaded.manifest, acceptance), null, 2)}\n`, "utf8");
+
+  const result = runEvidenceAgent({
+    agent,
+    cwd: root,
+    promptPath: promptRelative,
+    schemaPath: schemaRelative,
+    outputPath: outputRelative
+  });
+
+  if (result.status !== 0) {
+    return { ok: false, note: `Evidence evaluator exited with status ${result.status}.`, receipt: null };
+  }
+  if (!existsSync(outputPath)) {
+    return { ok: false, note: "Evidence evaluator did not produce a result.", receipt: null };
+  }
+
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync(outputPath, "utf8"));
+  } catch (error) {
+    return { ok: false, note: `Evidence output was not valid JSON: ${error.message}`, receipt: null };
+  }
+
+  return {
+    ok: true,
+    checks: normalizeEvidence(raw, loaded.manifest, root, acceptance)
+  };
+}
+
+function writeReceipt(root, loaded, projectVerification, checks) {
+  const receipt = {
+    trait: loaded.manifest.name,
+    version: loaded.manifest.version,
+    traitChecksum: loaded.checksum,
+    verifiedAt: new Date().toISOString(),
+    overall: checks.every((check) => check.status === "pass") ? "pass" : "incomplete",
+    projectChecks: projectVerification.results,
+    checks
+  };
+  const receiptPath = evidenceReceiptPath(root, loaded.manifest.name);
+  writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+
+  return {
+    ok: receipt.overall === "pass",
+    note: summarizeEvidence(receipt),
+    receipt,
+    receiptPath: relative(root, receiptPath).replaceAll("\\", "/")
+  };
 }
 
 function normalizeEvidenceItem(item, root) {
