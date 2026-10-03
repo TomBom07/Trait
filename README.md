@@ -62,11 +62,12 @@ trait verify [trait] [--checks-only] [--agent codex]
 trait update [trait] [--plan] [--agent codex]
 trait remove <trait> [--plan] [--agent codex]
 trait list
+trait order <trait...>
 ```
 
 `trait verify` reruns the host checks and evidence pass. `--checks-only` skips the new model call, reruns the deterministic project scripts, and checks whether the files cited by the last receipt still have the recorded hashes. `trait list` reports a previously verified trait as `stale` when that evidence has drifted.
 
-`remove` is also agent-driven. Trait deliberately does not pretend it can safely reverse an old patch after a codebase has evolved around it.
+`trait order` resolves a supplied batch in dependency order and validates version requirements, capabilities, and conflicts against the current lockfile. `remove` is also agent-driven, but Trait blocks removal when another installed behavior still depends on that trait or on a capability it uniquely provides.
 
 ## What is in a Trait?
 
@@ -114,6 +115,6 @@ This is a `0.x` prototype, not a registry yet.
 - Sources are bundled traits or local filesystem packages. A public registry needs provenance, immutable versions, reviewable contents, and signing before arbitrary remote contracts should become the default.
 - Acceptance criteria can use deterministic `project-script` graders. A remote Trait cannot supply arbitrary shell commands; it can only require a named script in the host project. Model-assisted evidence is used only for remaining criteria.
 - Codex is the first built-in execution and verification adapter. Agent-specific probing, implementation execution, read-only verification, sandbox flags, and structured-output handling live behind a small adapter interface, so adding another coding agent does not change the package format or verification receipts.
-- Trait does not yet understand behavioral dependencies or conflicts between traits.
+- Trait supports explicit trait requirements, semver-style ranges, conflicts, and capability requirements. The resolver is deliberately small rather than a general-purpose SAT solver.
 
-The next milestones are a signed registry and dependency/conflict semantics.
+The next major milestone is a signed, content-addressed registry.

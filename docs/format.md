@@ -46,3 +46,27 @@ An acceptance criterion can declare a host-project script as its grader:
 Trait never executes a shell command supplied by the behavior package. The grader can only name a script that exists in the host project's own `package.json`. The implementation agent is told to create or maintain that host-native script when needed.
 
 A passing deterministic grader is recorded directly in the evidence receipt and skips model judgment for that acceptance ID. A missing or failing configured grader is an explicit verification failure; Trait does not silently fall back to a model pass.
+
+
+## Relations
+
+Traits can describe how they compose with other installed behavior:
+
+```json
+{
+  "relations": {
+    "requires": [
+      { "name": "auth/session", "version": "^1.0.0" }
+    ],
+    "conflicts": [
+      { "name": "auth/legacy-passwordless", "version": "*" }
+    ],
+    "provides": ["auth.passkeys"],
+    "requiresCapabilities": ["auth.session"]
+  }
+}
+```
+
+`requires` and `conflicts` use a deliberately small version-range syntax: exact versions, `*`, comparison ranges such as `>=1.0.0 <2.0.0`, caret ranges, and tilde ranges.
+
+Capabilities let a behavior depend on an outcome rather than one specific provider. Trait records relation metadata in the lockfile, checks both forward and reverse conflicts, blocks unsafe removals, and exposes `trait order <trait...>` to topologically order a supplied batch. It does not automatically download missing dependencies or attempt a general dependency solver.

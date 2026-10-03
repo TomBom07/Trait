@@ -43,6 +43,7 @@ export function recordTrait(root, loaded, agent, evidence = null) {
     installedAt: previous?.installedAt ?? now,
     ...(previous ? { updatedAt: now } : {}),
     agent,
+    relations: loaded.manifest.relations ?? {},
     ...(evidence ? {
       verification: {
         status: evidence.receipt.overall,

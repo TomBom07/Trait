@@ -4,7 +4,8 @@ import { collectEvidence } from "../core/evidence.js";
 import { runAcceptanceGraders } from "../core/graders.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
-import { recordTrait } from "../core/state.js";
+import { checkTraitRelations } from "../core/relations.js";
+import { readLock, recordTrait } from "../core/state.js";
 import { verifyProject } from "../core/verify.js";
 
 export function addCommand(source, options, root) {
@@ -14,6 +15,13 @@ export function addCommand(source, options, root) {
   const plan = Boolean(options.plan);
 
   process.stdout.write(`Trait ${loaded.manifest.name}@${loaded.manifest.version}\n`);
+
+  const relations = checkTraitRelations(loaded.manifest, readLock(root));
+  if (!relations.ok) {
+    for (const error of relations.errors) process.stderr.write(`relation: ${error}\n`);
+    return 1;
+  }
+
   const result = runAgent({ agent, prompt: buildAddBrief(loaded, repo), cwd: root, dryRun: plan });
   if (plan) return 0;
   if (result.status !== 0) {
