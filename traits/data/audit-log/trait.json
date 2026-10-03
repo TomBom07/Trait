@@ -1,0 +1,84 @@
+{
+  "$schema": "../../../schema/trait.schema.json",
+  "schemaVersion": 1,
+  "name": "data/audit-log",
+  "version": "0.1.0",
+  "summary": "Record security-relevant actions in an append-oriented audit trail without leaking secrets.",
+  "intent": "Sensitive administrative or account-changing actions produce durable audit events with enough actor, action, target, time, and request context to investigate what happened while secrets and private payloads remain excluded.",
+  "rules": [
+    {
+      "id": "audit.event.required",
+      "text": "Each opted-in security-relevant action emits one structured audit event after its outcome is known."
+    },
+    {
+      "id": "audit.event.context",
+      "text": "Audit events capture the authenticated actor when available, action type, target identity, timestamp, outcome, and a request or trace correlation identifier."
+    },
+    {
+      "id": "audit.event.append",
+      "text": "Normal application code appends audit events rather than editing historical events in place."
+    },
+    {
+      "id": "audit.event.failure",
+      "text": "The application has an explicit policy for audit-write failure so a lost event is not silently mistaken for successful auditing."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "audit.domain.source",
+      "text": "The audit trail records domain/security events without replacing operational logs, metrics, or the authoritative domain data."
+    },
+    {
+      "id": "audit.business.result",
+      "text": "Audit instrumentation does not change the domain result except where the host explicitly chooses fail-closed behavior for mandatory auditing."
+    },
+    {
+      "id": "audit.existing.logging",
+      "text": "Existing application logging remains usable and is not duplicated wholesale into the audit store."
+    }
+  ],
+  "security": [
+    {
+      "id": "audit.secret.redaction",
+      "text": "Passwords, session secrets, tokens, private keys, raw authentication assertions, and similarly sensitive payloads are never stored in audit event fields."
+    },
+    {
+      "id": "audit.access.control",
+      "text": "Reading or exporting audit events is restricted to explicitly authorized server-side roles or processes."
+    },
+    {
+      "id": "audit.actor.server",
+      "text": "Actor identity and privileged context are derived from trusted server-side authentication state rather than user-supplied audit fields."
+    },
+    {
+      "id": "audit.integrity",
+      "text": "Storage and retention choices make unauthorized deletion or modification materially harder than changing ordinary application output."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "accept.audit.success",
+      "text": "A successful opted-in sensitive action produces one audit event with actor, action, target, outcome, time, and correlation context."
+    },
+    {
+      "id": "accept.audit.failure",
+      "text": "A failed opted-in action records the intended failure outcome without falsely recording a successful change."
+    },
+    {
+      "id": "accept.audit.redaction",
+      "text": "Representative secret or credential values used by the action do not appear in the stored audit event."
+    },
+    {
+      "id": "accept.audit.authorization",
+      "text": "An unauthorized application user cannot read or export the audit trail through the introduced interface."
+    }
+  ],
+  "verify": {
+    "scripts": [
+      "test",
+      "typecheck",
+      "lint"
+    ]
+  },
+  "guidance": "IMPLEMENTATION.md"
+}

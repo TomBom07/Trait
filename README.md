@@ -47,11 +47,15 @@ npm install
 node src/cli.js add auth/passkeys --plan
 ```
 
-The repository currently ships two example contracts:
+The repository currently ships six reference contracts:
 
 ```bash
 trait add auth/passkeys --plan
 trait add api/idempotency --plan
+trait add api/rate-limit --plan
+trait add security/csrf --plan
+trait add jobs/retry-safety --plan
+trait add data/audit-log --plan
 ```
 
 When the Codex CLI is installed and authenticated, omit `--plan` to apply the behavior.
@@ -124,7 +128,7 @@ A package is a small directory with a `trait.json` contract and, optionally, imp
 }
 ```
 
-See [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
+See [`docs/catalog.md`](docs/catalog.md) for the bundled contracts, [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
 
 ## Why not just use an agent skill?
 

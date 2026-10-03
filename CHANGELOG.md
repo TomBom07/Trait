@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+- added reference Traits for API rate limiting, CSRF protection, retry-safe jobs, and security audit logging;
+- added catalog-wide validation so every bundled contract must load with guidance and meaningful acceptance coverage;
+- documented the starter behavior catalog and the criteria for adding future bundled Traits.
+
+# Changelog
+
 ## 0.8.0
 
 - registry pack now maintains a static searchable `v1/index.json` catalog;

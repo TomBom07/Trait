@@ -1,0 +1,80 @@
+{
+  "$schema": "../../../schema/trait.schema.json",
+  "schemaVersion": 1,
+  "name": "api/rate-limit",
+  "version": "0.1.0",
+  "summary": "Add server-enforced rate limits to selected operations without changing unrelated request behavior.",
+  "intent": "Selected endpoints or operations reject excessive traffic using a stable server-side identity and policy while ordinary traffic, existing authentication, and response conventions continue to work.",
+  "rules": [
+    {
+      "id": "api.ratelimit.policy",
+      "text": "Protected operations use an explicit limit and time window or equivalent token-bucket policy."
+    },
+    {
+      "id": "api.ratelimit.identity",
+      "text": "Rate-limit identity is derived from trusted server context appropriate to the operation, such as account, credential, or validated client address."
+    },
+    {
+      "id": "api.ratelimit.response",
+      "text": "Requests over the limit receive the application's normal throttling response and do not execute the protected operation."
+    },
+    {
+      "id": "api.ratelimit.scope",
+      "text": "Limits are scoped so unrelated users or operations do not consume one another's allowance unless the policy explicitly intends a shared quota."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "api.ratelimit.unprotected",
+      "text": "Operations not opted into rate limiting keep their existing behavior."
+    },
+    {
+      "id": "api.ratelimit.auth",
+      "text": "Rate limiting does not replace authentication, authorization, or abuse checks already required by the operation."
+    },
+    {
+      "id": "api.ratelimit.errors",
+      "text": "Existing response and error conventions remain intact apart from the deliberate throttling result."
+    }
+  ],
+  "security": [
+    {
+      "id": "api.ratelimit.atomic",
+      "text": "Concurrent requests cannot bypass the configured limit because counters or tokens are updated non-atomically."
+    },
+    {
+      "id": "api.ratelimit.proxy",
+      "text": "Client network identity is taken only from headers or connection metadata trusted by the host deployment."
+    },
+    {
+      "id": "api.ratelimit.storage",
+      "text": "Distributed deployments use rate-limit state that is shared or partitioned consistently enough to enforce the declared policy."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "accept.ratelimit.within-limit",
+      "text": "Executable evidence shows requests within the configured allowance reach the protected operation."
+    },
+    {
+      "id": "accept.ratelimit.over-limit",
+      "text": "Executable evidence shows the first request beyond the allowance is rejected without executing the protected operation."
+    },
+    {
+      "id": "accept.ratelimit.isolation",
+      "text": "Executable evidence shows one caller's quota does not incorrectly consume another caller's independent quota."
+    },
+    {
+      "id": "accept.ratelimit.concurrent",
+      "text": "A concurrent burst cannot execute more protected operations than the declared policy allows."
+    }
+  ],
+  "verify": {
+    "scripts": [
+      "test",
+      "typecheck",
+      "lint"
+    ]
+  },
+  "guidance": "IMPLEMENTATION.md"
+}
