@@ -39,7 +39,7 @@ export function collectEvidence(root, loaded, projectVerification, { command = "
 
   const result = spawnSync(
     command,
-    ["exec", instruction, "--output-schema", schemaRelative, "-o", outputRelative],
+    ["exec", "--sandbox", "read-only", instruction, "--output-schema", schemaRelative, "-o", outputRelative],
     {
       cwd: root,
       stdio: "inherit",
