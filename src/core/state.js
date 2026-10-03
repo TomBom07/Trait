@@ -4,6 +4,18 @@ import { join } from "node:path";
 export const TRAIT_DIR = ".trait";
 export const LOCK_NAME = "lock.json";
 
+export function ensureTraitWorkspace(root) {
+  const dir = join(root, TRAIT_DIR);
+  mkdirSync(join(dir, "runs"), { recursive: true });
+  mkdirSync(join(dir, "evidence"), { recursive: true });
+
+  const ignorePath = join(dir, ".gitignore");
+  if (!existsSync(ignorePath)) {
+    writeFileSync(ignorePath, "runs/\nevidence/\n", "utf8");
+  }
+  return dir;
+}
+
 export function readLock(root) {
   const path = join(root, TRAIT_DIR, LOCK_NAME);
   if (!existsSync(path)) return { version: 1, traits: {} };
@@ -20,19 +32,28 @@ export function readLock(root) {
 }
 
 export function writeLock(root, lock) {
-  const dir = join(root, TRAIT_DIR);
-  mkdirSync(dir, { recursive: true });
+  const dir = ensureTraitWorkspace(root);
   writeFileSync(join(dir, LOCK_NAME), `${JSON.stringify(lock, null, 2)}\n`, "utf8");
 }
 
-export function recordTrait(root, loaded, agent) {
+export function recordTrait(root, loaded, agent, evidence = null) {
   const lock = readLock(root);
+  const previous = lock.traits[loaded.manifest.name];
+  const now = new Date().toISOString();
   lock.traits[loaded.manifest.name] = {
     version: loaded.manifest.version,
     source: loaded.source,
     checksum: loaded.checksum,
-    installedAt: new Date().toISOString(),
-    agent
+    installedAt: previous?.installedAt ?? now,
+    ...(previous ? { updatedAt: now } : {}),
+    agent,
+    ...(evidence ? {
+      verification: {
+        status: evidence.receipt.overall,
+        verifiedAt: evidence.receipt.verifiedAt,
+        evidence: evidence.receiptPath
+      }
+    } : {})
   };
   writeLock(root, lock);
 }

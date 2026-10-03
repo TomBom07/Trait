@@ -12,7 +12,7 @@ const HELP = `Trait — reusable behavior for codebases
 
 Usage:
   trait add <namespace/name|path> [--agent codex] [--plan]
-  trait verify [namespace/name]
+  trait verify [namespace/name] [--checks-only]
   trait update [namespace/name] [--agent codex] [--plan]
   trait remove <namespace/name> [--agent codex] [--plan]
   trait list
@@ -21,11 +21,13 @@ Examples:
   trait add auth/passkeys --plan
   trait add auth/passkeys
   trait verify auth/passkeys
+  trait verify --checks-only
   trait update
 
 A trait is a behavior contract: requirements, invariants, acceptance criteria and
-implementation guidance. Trait asks an agent to adapt that contract to the code
-that already exists, then runs the host project's relevant checks.
+implementation guidance. Trait adapts that contract to the code that already
+exists, runs the host project's checks, then verifies each acceptance criterion
+against concrete repository evidence.
 `;
 
 function main(argv) {
@@ -34,7 +36,8 @@ function main(argv) {
   const root = findRepoRoot(process.cwd());
   const options = {
     agent: flag(parsed, "agent", undefined),
-    plan: flag(parsed, "plan", false)
+    plan: flag(parsed, "plan", false),
+    checksOnly: flag(parsed, "checks-only", false)
   };
 
   switch (command) {
@@ -46,7 +49,7 @@ function main(argv) {
     case "add":
       return addCommand(parsed.positionals[0], options, root);
     case "verify":
-      return verifyCommand(parsed.positionals[0], root);
+      return verifyCommand(parsed.positionals[0], options, root);
     case "list":
       return listCommand(root);
     case "remove":

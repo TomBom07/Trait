@@ -10,7 +10,8 @@ export function listCommand(root) {
 
   const width = Math.max(...entries.map(([name]) => name.length));
   for (const [name, item] of entries.sort(([a], [b]) => a.localeCompare(b))) {
-    process.stdout.write(`${name.padEnd(width)}  ${item.version}  ${item.agent ?? "-"}\n`);
+    const status = item.verification?.status === "pass" ? "verified" : "unverified";
+    process.stdout.write(`${name.padEnd(width)}  ${item.version}  ${status}  ${item.agent ?? "-"}\n`);
   }
   return 0;
 }

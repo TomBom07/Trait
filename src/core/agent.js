@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { ensureTraitWorkspace } from "./state.js";
 
 export function runAgent({ agent = "codex", prompt, cwd, dryRun = false }) {
   if (dryRun) {
@@ -35,8 +36,7 @@ export function runAgent({ agent = "codex", prompt, cwd, dryRun = false }) {
 }
 
 function writeRunFile(cwd, prompt) {
-  const directory = join(cwd, ".trait", "runs");
-  mkdirSync(directory, { recursive: true });
+  const directory = join(ensureTraitWorkspace(cwd), "runs");
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `${stamp}-${process.pid}.md`;
   writeFileSync(join(directory, filename), `${prompt.trim()}\n`, "utf8");

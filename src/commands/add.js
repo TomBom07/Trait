@@ -1,5 +1,6 @@
 import { runAgent } from "../core/agent.js";
 import { buildAddBrief } from "../core/brief.js";
+import { collectEvidence } from "../core/evidence.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
 import { recordTrait } from "../core/state.js";
@@ -19,13 +20,34 @@ export function addCommand(source, options, root) {
     return result.status;
   }
 
-  const verification = verifyProject(root, loaded.manifest);
-  if (!verification.ok) {
-    process.stderr.write(`\nVerification failed (${verification.note}); lockfile was not changed.\n`);
+  const projectVerification = verifyProject(root, loaded.manifest);
+  if (!projectVerification.ok) {
+    process.stderr.write(`\nVerification failed (${projectVerification.note}); lockfile was not changed.\n`);
     return 1;
   }
 
-  recordTrait(root, loaded, agent);
-  process.stdout.write(`\nInstalled ${loaded.manifest.name}@${loaded.manifest.version}. ${verification.note}\n`);
+  const evidence = collectEvidence(root, loaded, projectVerification);
+  printEvidence(evidence);
+  if (!evidence.ok) {
+    process.stderr.write("Behavioral verification is incomplete; lockfile was not changed.\n");
+    return 1;
+  }
+
+  recordTrait(root, loaded, agent, evidence);
+  process.stdout.write(`\nInstalled ${loaded.manifest.name}@${loaded.manifest.version}.\n`);
   return 0;
+}
+
+function printEvidence(result) {
+  process.stdout.write(`\n${result.ok ? "verified" : "not verified"}: ${result.note}\n`);
+  if (!result.receipt) return;
+  for (const check of result.receipt.checks) {
+    process.stdout.write(`  ${symbol(check.status)} ${check.id}\n`);
+  }
+}
+
+function symbol(status) {
+  if (status === "pass") return "✓";
+  if (status === "fail") return "×";
+  return "?";
 }

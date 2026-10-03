@@ -1,5 +1,6 @@
 import { runAgent } from "../core/agent.js";
 import { buildUpdateBrief } from "../core/brief.js";
+import { collectEvidence } from "../core/evidence.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
 import { readLock, recordTrait } from "../core/state.js";
@@ -34,9 +35,14 @@ export function updateCommand(name, options, root) {
     if (plan) continue;
     if (result.status !== 0) return result.status;
 
-    const verification = verifyProject(root, loaded.manifest);
-    if (!verification.ok) return 1;
-    recordTrait(root, loaded, agent);
+    const projectVerification = verifyProject(root, loaded.manifest);
+    if (!projectVerification.ok) return 1;
+
+    const evidence = collectEvidence(root, loaded, projectVerification);
+    process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);
+    if (!evidence.ok) return 1;
+
+    recordTrait(root, loaded, agent, evidence);
     process.stdout.write(`Updated ${traitName} to ${loaded.manifest.version}.\n`);
   }
 
