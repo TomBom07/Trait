@@ -9,6 +9,7 @@ import { updateCommand } from "./commands/update.js";
 import { verifyCommand } from "./commands/verify.js";
 import { flag, parseArgs } from "./core/options.js";
 import { findRepoRoot } from "./core/repo.js";
+import { VERSION } from "./core/version.js";
 
 const HELP = `Trait — reusable behavior for codebases
 
@@ -55,6 +56,11 @@ async function main(argv) {
   };
 
   switch (command) {
+    case "version":
+    case "--version":
+    case "-v":
+      process.stdout.write(`${VERSION}\n`);
+      return 0;
     case "help":
     case "--help":
     case "-h":
