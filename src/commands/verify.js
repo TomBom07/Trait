@@ -33,7 +33,12 @@ export function verifyCommand(name, options, root) {
       continue;
     }
 
-    if (options.checksOnly) {\n      const cached = inspectEvidenceReceipt(root, traitName, locked);\n      process.stdout.write(`\${cached.ok ? "verified" : cached.status}: \${cached.note}.\\n`);\n      failed ||= !cached.ok;\n      continue;\n    }
+    if (options.checksOnly) {
+      const cached = inspectEvidenceReceipt(root, traitName, locked);
+      process.stdout.write(`${cached.ok ? "verified" : cached.status}: ${cached.note}.\n`);
+      failed ||= !cached.ok;
+      continue;
+    }
 
     const evidence = collectEvidence(root, loaded, projectVerification);
     process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);
