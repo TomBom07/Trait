@@ -12,7 +12,7 @@ const HELP = `Trait — reusable behavior for codebases
 
 Usage:
   trait add <namespace/name|path> [--agent codex] [--plan]
-  trait verify [namespace/name] [--checks-only]
+  trait verify [namespace/name] [--checks-only] [--agent codex]
   trait update [namespace/name] [--agent codex] [--plan]
   trait remove <namespace/name> [--agent codex] [--plan]
   trait list

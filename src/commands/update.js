@@ -38,7 +38,7 @@ export function updateCommand(name, options, root) {
     const projectVerification = verifyProject(root, loaded.manifest);
     if (!projectVerification.ok) return 1;
 
-    const evidence = collectEvidence(root, loaded, projectVerification);
+    const evidence = collectEvidence(root, loaded, projectVerification, { agent });
     process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);
     if (!evidence.ok) return 1;
 

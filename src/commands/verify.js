@@ -40,7 +40,8 @@ export function verifyCommand(name, options, root) {
       continue;
     }
 
-    const evidence = collectEvidence(root, loaded, projectVerification);
+    const agent = options.agent ?? locked.agent ?? "codex";
+    const evidence = collectEvidence(root, loaded, projectVerification, { agent });
     process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);
     if (evidence.receipt) {
       for (const check of evidence.receipt.checks) {

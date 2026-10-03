@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   readFileSync,
@@ -7,21 +6,14 @@ import {
   writeFileSync
 } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { runEvidenceAgent } from "./agent.js";
 import { ensureTraitWorkspace } from "./state.js";
 
 const STATUSES = new Set(["pass", "fail", "unknown"]);
 const EVIDENCE_KINDS = new Set(["test", "code", "config", "migration", "other"]);
 
-export function collectEvidence(root, loaded, projectVerification, { command = "codex" } = {}) {
+export function collectEvidence(root, loaded, projectVerification, { agent = "codex" } = {}) {
   ensureTraitWorkspace(root);
-
-  const probe = spawnSync(process.platform === "win32" ? "where" : "which", [command], {
-    encoding: "utf8",
-    shell: false
-  });
-  if (probe.status !== 0) {
-    throw new Error("Codex CLI was not found, so behavioral evidence could not be collected.");
-  }
 
   const stamp = runStamp();
   const promptPath = join(root, ".trait", "runs", `${stamp}-verify.md`);
@@ -34,22 +26,16 @@ export function collectEvidence(root, loaded, projectVerification, { command = "
   writeFileSync(promptPath, `${buildEvidencePrompt(loaded.manifest).trim()}\n`, "utf8");
   writeFileSync(schemaPath, `${JSON.stringify(buildEvidenceSchema(loaded.manifest), null, 2)}\n`, "utf8");
 
-  const instruction = `Read ${promptRelative} and evaluate the current repository. Do not modify files.`;
-  process.stdout.write(`\n→ codex verify (${promptRelative})\n`);
+  const result = runEvidenceAgent({
+    agent,
+    cwd: root,
+    promptPath: promptRelative,
+    schemaPath: schemaRelative,
+    outputPath: outputRelative
+  });
 
-  const result = spawnSync(
-    command,
-    ["exec", "--sandbox", "read-only", instruction, "--output-schema", schemaRelative, "-o", outputRelative],
-    {
-      cwd: root,
-      stdio: "inherit",
-      shell: process.platform === "win32"
-    }
-  );
-
-  if (result.error) throw result.error;
-  if ((result.status ?? 1) !== 0) {
-    return { ok: false, note: `Evidence evaluator exited with status ${result.status ?? 1}.`, receipt: null };
+  if (result.status !== 0) {
+    return { ok: false, note: `Evidence evaluator exited with status ${result.status}.`, receipt: null };
   }
   if (!existsSync(outputPath)) {
     return { ok: false, note: "Evidence evaluator did not produce a result.", receipt: null };
