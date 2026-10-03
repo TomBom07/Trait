@@ -51,3 +51,16 @@ test("acceptance graders are restricted to named project scripts", () => {
   const errors = validateManifest(withGrader);
   assert(errors.some((error) => error.includes("grader.type")));
 });
+
+
+test("relation metadata rejects self-dependencies and invalid capability lists", () => {
+  const related = structuredClone(valid);
+  related.relations = {
+    requires: [{ name: related.name, version: "^1.0.0" }],
+    provides: ["cache.behavior", "cache.behavior"]
+  };
+
+  const errors = validateManifest(related);
+  assert(errors.some((error) => error.includes("cannot reference the trait itself")));
+  assert(errors.some((error) => error.includes("must not contain duplicates")));
+});

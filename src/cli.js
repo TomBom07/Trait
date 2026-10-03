@@ -2,6 +2,7 @@
 
 import { addCommand } from "./commands/add.js";
 import { listCommand } from "./commands/list.js";
+import { orderCommand } from "./commands/order.js";
 import { removeCommand } from "./commands/remove.js";
 import { updateCommand } from "./commands/update.js";
 import { verifyCommand } from "./commands/verify.js";
@@ -15,7 +16,7 @@ Usage:
   trait verify [namespace/name] [--checks-only] [--agent codex]
   trait update [namespace/name] [--agent codex] [--plan]
   trait remove <namespace/name> [--agent codex] [--plan]
-  trait list
+  trait list\n  trait order <trait...>
 
 Examples:
   trait add auth/passkeys --plan
@@ -52,6 +53,8 @@ function main(argv) {
       return verifyCommand(parsed.positionals[0], options, root);
     case "list":
       return listCommand(root);
+    case "order":
+      return orderCommand(parsed.positionals, root);
     case "remove":
       if (!parsed.positionals[0]) throw new Error("remove needs a trait name");
       return removeCommand(parsed.positionals[0], options, root);

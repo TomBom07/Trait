@@ -4,48 +4,96 @@
   "title": "Trait behavior contract",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "name", "version", "summary", "intent", "rules", "invariants", "acceptance"],
+  "required": [
+    "schemaVersion",
+    "name",
+    "version",
+    "summary",
+    "intent",
+    "rules",
+    "invariants",
+    "acceptance"
+  ],
   "properties": {
-    "$schema": { "type": "string" },
-    "schemaVersion": { "const": 1 },
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
     "name": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$"
     },
-    "version": { "type": "string" },
-    "summary": { "type": "string", "minLength": 12 },
-    "intent": { "type": "string", "minLength": 20 },
-    "rules": { "$ref": "#/$defs/items" },
-    "invariants": { "$ref": "#/$defs/items" },
-    "security": { "$ref": "#/$defs/items" },
-    "acceptance": { "$ref": "#/$defs/acceptanceItems" },
-    "guidance": { "type": "string" },
+    "version": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 12
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 20
+    },
+    "rules": {
+      "$ref": "#/$defs/items"
+    },
+    "invariants": {
+      "$ref": "#/$defs/items"
+    },
+    "security": {
+      "$ref": "#/$defs/items"
+    },
+    "acceptance": {
+      "$ref": "#/$defs/acceptanceItems"
+    },
+    "guidance": {
+      "type": "string"
+    },
     "verify": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "scripts": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "uniqueItems": true
         }
       }
+    },
+    "relations": {
+      "$ref": "#/$defs/relations"
     }
   },
   "$defs": {
     "item": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "text"],
+      "required": [
+        "id",
+        "text"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*\\.[a-z0-9._-]+$" },
-        "text": { "type": "string", "minLength": 8 }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*\\.[a-z0-9._-]+$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 8
+        }
       }
     },
     "items": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/item" }
+      "items": {
+        "$ref": "#/$defs/item"
+      }
     },
     "acceptanceItems": {
       "type": "array",
@@ -53,19 +101,87 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "text"],
+        "required": [
+          "id",
+          "text"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*\\.[a-z0-9._-]+$" },
-          "text": { "type": "string", "minLength": 8 },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*\\.[a-z0-9._-]+$"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 8
+          },
           "grader": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "script"],
+            "required": [
+              "type",
+              "script"
+            ],
             "properties": {
-              "type": { "const": "project-script" },
-              "script": { "type": "string", "minLength": 1 }
+              "type": {
+                "const": "project-script"
+              },
+              "script": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
+        }
+      }
+    },
+    "traitRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "relations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traitRef"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traitRef"
+          }
+        },
+        "provides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "requiresCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         }
       }
     }

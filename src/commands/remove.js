@@ -2,6 +2,7 @@ import { runAgent } from "../core/agent.js";
 import { buildRemoveBrief } from "../core/brief.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
+import { checkTraitRemoval } from "../core/relations.js";
 import { forgetTrait, readLock } from "../core/state.js";
 import { verifyProject } from "../core/verify.js";
 import { sourceFromLock } from "./verify.js";
@@ -10,6 +11,12 @@ export function removeCommand(name, options, root) {
   const lock = readLock(root);
   const installed = lock.traits[name];
   if (!installed) throw new Error(`Trait "${name}" is not installed`);
+
+  const removal = checkTraitRemoval(name, lock);
+  if (!removal.ok) {
+    for (const error of removal.errors) process.stderr.write(`relation: cannot remove ${name}: ${error}\n`);
+    return 1;
+  }
 
   const loaded = loadManifest(sourceFromLock(installed.source), root);
   const repo = inspectRepo(root);

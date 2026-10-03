@@ -4,6 +4,7 @@ import { collectEvidence } from "../core/evidence.js";
 import { runAcceptanceGraders } from "../core/graders.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
+import { checkTraitRelations } from "../core/relations.js";
 import { readLock, recordTrait } from "../core/state.js";
 import { verifyProject } from "../core/verify.js";
 import { sourceFromLock } from "./verify.js";
@@ -23,6 +24,12 @@ export function updateCommand(name, options, root) {
     if (loaded.manifest.version === previous.version && loaded.checksum === previous.checksum) {
       process.stdout.write(`${traitName} is already at ${previous.version}.\n`);
       continue;
+    }
+
+    const relations = checkTraitRelations(loaded.manifest, lock, { replacing: traitName });
+    if (!relations.ok) {
+      for (const error of relations.errors) process.stderr.write(`relation: ${error}\n`);
+      return 1;
     }
 
     const agent = options.agent ?? previous.agent ?? "codex";

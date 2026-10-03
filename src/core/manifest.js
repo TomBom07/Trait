@@ -65,6 +65,8 @@ export function validateManifest(value) {
     }
   }
 
+  validateRelations(value.relations, value.name, errors);
+
   if (value.guidance !== undefined && typeof value.guidance !== "string") {
     errors.push("guidance must be a relative file path");
   }
@@ -134,4 +136,49 @@ export function resolveSource(source, cwd = process.cwd()) {
   const manifestPath = join(baseDir, "trait.json");
   if (!existsSync(manifestPath)) throw new Error(`Trait "${source}" is not bundled in this build`);
   return { manifestPath, baseDir, source: `builtin:${source}` };
+}
+
+function validateRelations(relations, ownName, errors) {
+  if (relations === undefined) return;
+  if (!relations || typeof relations !== "object" || Array.isArray(relations)) {
+    errors.push("relations must be an object");
+    return;
+  }
+
+  for (const field of ["requires", "conflicts"]) {
+    if (relations[field] === undefined) continue;
+    if (!Array.isArray(relations[field])) {
+      errors.push(`relations.${field} must be an array`);
+      continue;
+    }
+
+    const seen = new Set();
+    for (const relation of relations[field]) {
+      if (!relation || typeof relation !== "object" || Array.isArray(relation)) {
+        errors.push(`relations.${field} entries must be objects`);
+        continue;
+      }
+      if (!NAME_RE.test(relation.name ?? "")) {
+        errors.push(`relations.${field} entries need a valid trait name`);
+      } else {
+        if (relation.name === ownName) errors.push(`relations.${field} cannot reference the trait itself`);
+        if (seen.has(relation.name)) errors.push(`relations.${field} contains duplicate ${relation.name}`);
+        seen.add(relation.name);
+      }
+      if (relation.version !== undefined && (typeof relation.version !== "string" || !relation.version.trim())) {
+        errors.push(`relations.${field}.${relation.name ?? "?"}.version must be a non-empty range`);
+      }
+    }
+  }
+
+  for (const field of ["provides", "requiresCapabilities"]) {
+    if (relations[field] === undefined) continue;
+    if (!Array.isArray(relations[field]) || relations[field].some((item) => typeof item !== "string" || !item.trim())) {
+      errors.push(`relations.${field} must be an array of non-empty strings`);
+      continue;
+    }
+    if (new Set(relations[field]).size !== relations[field].length) {
+      errors.push(`relations.${field} must not contain duplicates`);
+    }
+  }
 }
