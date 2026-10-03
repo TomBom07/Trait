@@ -85,7 +85,7 @@ test("recorded evidence becomes stale when a cited file changes", () => {
   mkdirSync(join(root, "test"));
   mkdirSync(join(root, ".trait", "evidence"), { recursive: true });
   const sourcePath = join(root, "test", "idempotency.test.js");
-  writeFileSync(sourcePath, "assert one execution\\n");
+  writeFileSync(sourcePath, "assert one execution\n");
 
   const checks = normalizeEvidence({ checks: [
     {
@@ -116,10 +116,10 @@ test("recorded evidence becomes stale when a cited file changes", () => {
     projectChecks: [],
     checks
   };
-  writeFileSync(evidenceReceiptPath(root, manifest.name), `${JSON.stringify(receipt, null, 2)}\\n`);
+  writeFileSync(evidenceReceiptPath(root, manifest.name), `${JSON.stringify(receipt, null, 2)}\n`);
 
   assert.equal(inspectEvidenceReceipt(root, manifest.name, locked).status, "verified");
-  writeFileSync(sourcePath, "assert one execution\\nassert conflict rejected\\n");
+  writeFileSync(sourcePath, "assert one execution\nassert conflict rejected\n");
   const stale = inspectEvidenceReceipt(root, manifest.name, locked);
   assert.equal(stale.status, "stale");
   assert.match(stale.note, /changed since verification/);

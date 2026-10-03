@@ -17,7 +17,7 @@ test("records and removes installed contract state", () => {
   assert.equal(readLock(root).traits["api/idempotency"].checksum, "abc");
 
   const receipt = join(root, ".trait", "evidence", "api--idempotency.json");
-  writeFileSync(receipt, "{}\\n");
+  writeFileSync(receipt, "{}\n");
   assert.equal(forgetTrait(root, "api/idempotency"), true);
   assert.deepEqual(readLock(root).traits, {});
   assert.equal(existsSync(receipt), false);
@@ -27,10 +27,10 @@ test("evidence receipts are durable while run prompts stay ignored", () => {
   const root = mkdtempSync(join(tmpdir(), "trait-state-"));
   mkdirSync(join(root, ".trait"), { recursive: true });
   const ignorePath = join(root, ".trait", ".gitignore");
-  writeFileSync(ignorePath, "runs/\\nevidence/\\ncustom/\\n");
+  writeFileSync(ignorePath, "runs/\nevidence/\ncustom/\n");
 
   ensureTraitWorkspace(root);
-  const lines = readFileSync(ignorePath, "utf8").trim().split(/\\r?\\n/);
+  const lines = readFileSync(ignorePath, "utf8").trim().split(/\r?\n/);
   assert(lines.includes("runs/"));
   assert(lines.includes("custom/"));
   assert(!lines.includes("evidence/"));
