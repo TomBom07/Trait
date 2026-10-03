@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildEvidenceSchema, normalizeEvidence } from "../src/core/evidence.js";
+import { buildEvidenceSchema, evidenceReceiptPath, inspectEvidenceReceipt, normalizeEvidence } from "../src/core/evidence.js";
 
 const manifest = {
   name: "api/idempotency",
@@ -77,4 +77,50 @@ test("a claimed pass without valid evidence is downgraded", () => {
   assert.match(checks[0].notes, /does not exist/i);
   assert.equal(checks[1].status, "unknown");
   assert.match(checks[1].notes, /not an allowed/i);
+});
+
+
+test("recorded evidence becomes stale when a cited file changes", () => {
+  const root = mkdtempSync(join(tmpdir(), "trait-evidence-"));
+  mkdirSync(join(root, "test"));
+  mkdirSync(join(root, ".trait", "evidence"), { recursive: true });
+  const sourcePath = join(root, "test", "idempotency.test.js");
+  writeFileSync(sourcePath, "assert one execution\\n");
+
+  const checks = normalizeEvidence({ checks: [
+    {
+      id: "accept.same-key",
+      status: "pass",
+      evidence: [{ path: "test/idempotency.test.js", kind: "test", reason: "Covers replay." }],
+      notes: ""
+    },
+    {
+      id: "accept.conflict",
+      status: "pass",
+      evidence: [{ path: "test/idempotency.test.js", kind: "test", reason: "Covers conflict." }],
+      notes: ""
+    }
+  ] }, manifest, root);
+
+  const locked = {
+    version: manifest.version,
+    checksum: "contract-sha",
+    verification: { status: "pass", verifiedAt: "2026-10-03T00:00:00.000Z", evidence: ".trait/evidence/api--idempotency.json" }
+  };
+  const receipt = {
+    trait: manifest.name,
+    version: manifest.version,
+    traitChecksum: locked.checksum,
+    verifiedAt: locked.verification.verifiedAt,
+    overall: "pass",
+    projectChecks: [],
+    checks
+  };
+  writeFileSync(evidenceReceiptPath(root, manifest.name), `${JSON.stringify(receipt, null, 2)}\\n`);
+
+  assert.equal(inspectEvidenceReceipt(root, manifest.name, locked).status, "verified");
+  writeFileSync(sourcePath, "assert one execution\\nassert conflict rejected\\n");
+  const stale = inspectEvidenceReceipt(root, manifest.name, locked);
+  assert.equal(stale.status, "stale");
+  assert.match(stale.note, /changed since verification/);
 });

@@ -83,6 +83,64 @@ export function collectEvidence(root, loaded, projectVerification, { command = "
   };
 }
 
+export function inspectEvidenceReceipt(root, name, locked) {
+  if (locked.verification?.status !== "pass") {
+    return { ok: false, status: "unverified", note: "no successful evidence receipt is recorded" };
+  }
+
+  const receiptPath = evidenceReceiptPath(root, name);
+  if (!existsSync(receiptPath)) {
+    return { ok: false, status: "stale", note: "the recorded evidence receipt is missing" };
+  }
+
+  let receipt;
+  try {
+    receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
+  } catch (error) {
+    return { ok: false, status: "stale", note: `the evidence receipt is unreadable: ${error.message}` };
+  }
+
+  const reasons = [];
+  if (receipt.trait !== name) reasons.push("trait name does not match");
+  if (receipt.version !== locked.version) reasons.push("trait version does not match");
+  if (receipt.traitChecksum !== locked.checksum) reasons.push("trait contract checksum does not match");
+  if (receipt.overall !== "pass") reasons.push("receipt is not a successful verification");
+  if (!Array.isArray(receipt.checks) || receipt.checks.length === 0) reasons.push("receipt has no acceptance checks");
+
+  for (const check of Array.isArray(receipt.checks) ? receipt.checks : []) {
+    if (check?.status !== "pass") {
+      reasons.push(`${check?.id ?? "unknown criterion"} is not recorded as pass`);
+      continue;
+    }
+    if (!Array.isArray(check.evidence) || check.evidence.length === 0) {
+      reasons.push(`${check.id} has no repository evidence`);
+      continue;
+    }
+
+    for (const item of check.evidence) {
+      const normalized = normalizeEvidenceItem(item, root);
+      if (!normalized.ok) {
+        reasons.push(`${check.id}: ${normalized.reason}`);
+        continue;
+      }
+      if (normalized.value.sha256 !== item.sha256) {
+        reasons.push(`${check.id}: ${normalized.value.path} changed since verification`);
+      }
+    }
+  }
+
+  if (reasons.length) {
+    return { ok: false, status: "stale", note: reasons[0], reasons, receiptPath };
+  }
+
+  return {
+    ok: true,
+    status: "verified",
+    note: `${receipt.checks.length}/${receipt.checks.length} acceptance criteria still match their recorded evidence`,
+    receiptPath
+  };
+}
+
 export function buildEvidenceSchema(manifest) {
   const ids = manifest.acceptance.map((item) => item.id);
   return {
@@ -244,7 +302,7 @@ function validLine(value, lineCount) {
   return Number.isInteger(value) && value >= 1 && value <= lineCount;
 }
 
-function evidenceReceiptPath(root, name) {
+export function evidenceReceiptPath(root, name) {
   const filename = `${name.replaceAll("/", "--")}.json`;
   return join(root, ".trait", "evidence", filename);
 }
