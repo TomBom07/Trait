@@ -6,7 +6,7 @@ Trait is still small enough that changes should stay easy to audit.
 
 Requirements:
 
-- Node.js 20 or newer
+- Node.js 20 or newer; CI covers Node 20, 22, and 24 on Linux and Windows
 - npm
 - Codex only for manual end-to-end agent runs; the unit suite does not require it
 
@@ -28,7 +28,7 @@ For security-sensitive code, prefer an explicit failure over a permissive fallba
 
 - do not execute commands supplied directly by a remote Trait package;
 - do not weaken registry signature, fingerprint, hash, or path validation;
-- do not make remote fetching implicit;
+- do not make remote fetching implicit;\n- do not broaden registry artifacts beyond manifest-referenced contract files without a security review;
 - do not let an implementation agent certify its own work.
 
 ## Trait format changes

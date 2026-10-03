@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadManifest, validateManifest } from "../src/core/manifest.js";
@@ -63,4 +63,35 @@ test("relation metadata rejects self-dependencies and invalid capability lists",
   const errors = validateManifest(related);
   assert(errors.some((error) => error.includes("cannot reference the trait itself")));
   assert(errors.some((error) => error.includes("must not contain duplicates")));
+});
+
+
+test("manifest versions must be complete semantic versions", () => {
+  for (const version of ["1.2.3oops", "1.2", "v1.2.3", "1.2.3-"]) {
+    const broken = structuredClone(valid);
+    broken.version = version;
+    assert(
+      validateManifest(broken).some((error) => error.includes("semver-like")),
+      `expected ${version} to be rejected`
+    );
+  }
+
+  for (const version of ["1.2.3", "1.2.3-beta.1", "1.2.3+build.7"]) {
+    const candidate = structuredClone(valid);
+    candidate.version = version;
+    assert.deepEqual(validateManifest(candidate), []);
+  }
+});
+
+
+test("json schema and runtime agree on exact semantic versions", () => {
+  const schema = JSON.parse(
+    readFileSync(new URL("../schema/trait.schema.json", import.meta.url), "utf8")
+  );
+  const pattern = new RegExp(schema.properties.version.pattern);
+
+  assert.equal(pattern.test("1.2.3"), true);
+  assert.equal(pattern.test("1.2.3-beta.1+build.7"), true);
+  assert.equal(pattern.test("1.2.3oops"), false);
+  assert.equal(pattern.test("1.2"), false);
 });

@@ -34,3 +34,10 @@ Registry-backed lock entries pin the exact artifact hash. Publisher revocation b
 A Trait package must not rely on arbitrary shell commands from the package itself. Deterministic graders can only name scripts that exist in the host project.
 
 Treat implementation guidance as security-sensitive input. Keep it specific to the declared behavior and avoid instructions unrelated to the package contract.
+
+
+## Publisher key safety
+
+Private signing keys must live outside the Trait package directory. `trait registry pack` rejects an in-package signing key instead of risking publication.
+
+Registry v1 artifacts include only `trait.json` and the guidance file referenced by that manifest. Unreferenced files in the package directory are not copied into the artifact. This keeps local notes, credentials, build output, and unrelated files outside the distribution boundary by default.

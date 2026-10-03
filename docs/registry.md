@@ -81,4 +81,4 @@ trait registry pack ./my-trait \
 
 The output directory can be served by an ordinary HTTPS static host. Every pack updates `v1/index.json`, so a static host is enough for both package discovery and immutable artifact delivery.
 
-Private keys are read only for packing and are never copied into the registry. The artifact contains the corresponding public key.
+Private keys are read only for packing and are never copied into the registry. The packer rejects a signing key stored inside the Trait package directory. Registry v1 artifacts contain only `trait.json` and the guidance file referenced by that manifest; unrelated local files are outside the distribution boundary. The artifact contains the corresponding public key.

@@ -2,7 +2,7 @@
 
 **Distribute behavior, not framework code.**
 
-Package managers distribute implementations. Agent instruction files distribute working context. Trait is an experiment in distributing a third thing: **behavior contracts** that a coding agent can adapt to the architecture already in a repository.
+Package managers distribute implementations. Agent instruction files distribute working context. Trait distributes a third thing: **behavior contracts** that a coding agent can adapt to the architecture already in a repository.
 
 ```text
 $ trait add auth/passkeys
@@ -26,7 +26,7 @@ A passkey Trait does not ship a generic auth module and ask every project to ben
 
 ## Install from the repository
 
-Trait currently ships as a pre-1.0 repository package rather than a published npm release.
+Trait 1.0 currently ships from this repository rather than a published npm release.
 
 ```bash
 git clone https://github.com/TomBom07/Trait.git
@@ -40,7 +40,7 @@ You can also run the CLI directly with `node src/cli.js` while developing.
 
 ## Try the contract before letting an agent edit anything
 
-Trait is early. Start with plan mode so you can see exactly what the implementation agent would receive:
+Start with plan mode so you can see exactly what the implementation agent would receive:
 
 ```bash
 npm install
@@ -128,7 +128,7 @@ A package is a small directory with a `trait.json` contract and, optionally, imp
 }
 ```
 
-See [`docs/catalog.md`](docs/catalog.md) for the bundled contracts, [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
+See [`docs/v1.md`](docs/v1.md) for the compatibility boundary, [`docs/catalog.md`](docs/catalog.md) for the bundled contracts, [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
 
 ## Why not just use an agent skill?
 
@@ -136,13 +136,13 @@ Skills are good at teaching an agent a workflow or giving it reusable expertise.
 
 The hard part is not prompting an agent to write code. The hard part is making reusable behavior specific enough to survive translation between stacks and verifiable enough that `installed` means more than "the model said it finished."
 
-## Current limits
+## V1 scope and limits
 
-This is still a `0.x` prototype, but the trust model now has a concrete registry protocol.
+Trait 1.0 stabilizes the first contract, lockfile, evidence, and registry formats. See [`docs/v1.md`](docs/v1.md) for the compatibility boundary.
 
 - Registry packages are explicit rather than the default source: exact versions are content-addressed, Ed25519-signed, fingerprint-pinned, fully reviewable before trust, and cached locally.
 - Acceptance criteria can use deterministic `project-script` graders. A remote Trait cannot supply arbitrary shell commands; it can only require a named script in the host project. Model-assisted evidence is used only for remaining criteria.
 - Codex is the first built-in execution and verification adapter. Agent-specific probing, implementation execution, read-only verification, sandbox flags, and structured-output handling live behind a small adapter interface, so adding another coding agent does not change the package format or verification receipts.
 - Trait supports explicit trait requirements, semver-style ranges, conflicts, and capability requirements. The resolver is deliberately small rather than a general-purpose SAT solver.
 
-The remaining work before a 1.0-style release is mostly hardening: broader integration fixtures, registry hosting/discovery, stronger publisher identity UX, and more real-world Trait packages.
+Trait still does not claim formal verification, automatically fetch dependency graphs, operate a central hosted registry, or ship a second built-in coding-agent adapter. Those are explicit scope limits rather than hidden behavior.
