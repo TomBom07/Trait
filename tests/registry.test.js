@@ -9,7 +9,9 @@ import {
   distrustPublisher,
   fetchRegistryPackage,
   inspectRegistryPackage,
+  listTrustedPublishers,
   packRegistryPackage,
+  searchRegistry,
   resolveCachedRegistrySource,
   trustRegistryPackage
 } from "../src/core/registry.js";
@@ -57,6 +59,7 @@ test("registry flow requires explicit fingerprint trust before fetching", async 
   assert.equal(info.artifactHash, packed.artifactHash);
   assert.equal(info.fingerprint, packed.fingerprint);
   assert.equal(info.signatureValid, true);
+  assert.equal(info.trust, "untrusted");
   assert(info.files.some((file) => file.path === "trait.json"));
 
   await assert.rejects(
@@ -70,9 +73,20 @@ test("registry flow requires explicit fingerprint trust before fetching", async 
   );
 
   const trusted = await trustRegistryPackage(root, "demo/cache@1.0.0", {
-    fingerprint: info.fingerprint
+    fingerprint: info.fingerprint,
+    label: "Demo publisher"
   });
   assert.equal(trusted.publisher, "demo");
+  const afterTrust = await inspectRegistryPackage(root, "demo/cache@1.0.0");
+  assert.equal(afterTrust.trust, "trusted");
+  assert.deepEqual(
+    listTrustedPublishers(root).map((item) => ({
+      publisher: item.publisher,
+      label: item.label,
+      status: item.status
+    })),
+    [{ publisher: "demo", label: "Demo publisher", status: "trusted" }]
+  );
 
   const fetched = await fetchRegistryPackage(root, "demo/cache@1.0.0");
   assert.match(fetched.source, /^registry:demo\/cache@1\.0\.0#sha256:[a-f0-9]{64}$/);
@@ -112,4 +126,29 @@ test("tampered cached package files are rejected", async () => {
     () => resolveCachedRegistrySource(fetched.source, root),
     /was modified/
   );
+});
+
+
+test("registry pack maintains a searchable static catalog", async () => {
+  const { root, registryDir } = fixture();
+  const results = await searchRegistry(root, "cache");
+  assert.equal(results.length, 1);
+  assert.equal(results[0].name, "demo/cache");
+  assert.equal(results[0].latest, "1.0.0");
+
+  const all = await searchRegistry(root, "", { registry: registryDir });
+  assert.equal(all.length, 1);
+  assert.equal(all[0].publisher, "demo");
+});
+
+test("registry inspect reports revoked publisher state", async () => {
+  const { root, packed } = fixture();
+  await trustRegistryPackage(root, "demo/cache@1.0.0", {
+    fingerprint: packed.fingerprint
+  });
+  distrustPublisher(root, "demo");
+
+  const info = await inspectRegistryPackage(root, "demo/cache@1.0.0");
+  assert.equal(info.trust, "revoked");
+  assert.equal(listTrustedPublishers(root)[0].status, "revoked");
 });

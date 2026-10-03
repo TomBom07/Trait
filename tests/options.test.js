@@ -27,3 +27,9 @@ test("parses registry valued flags separately from boolean flags", () => {
   assert.equal(flag(parsed, "fingerprint"), "sha256:abc");
   assert.equal(flag(parsed, "offline", false), true);
 });
+
+
+test("parses publisher label for trust commands", () => {
+  const parsed = parseArgs(["demo/cache@1.0.0", "--label", "Demo publisher"]);
+  assert.equal(flag(parsed, "label"), "Demo publisher");
+});

@@ -3,7 +3,9 @@ import {
   distrustPublisher,
   fetchRegistryPackage,
   inspectRegistryPackage,
+  listTrustedPublishers,
   packRegistryPackage,
+  searchRegistry,
   trustRegistryPackage
 } from "../core/registry.js";
 
@@ -26,6 +28,7 @@ export async function registryCommand(args, options, root) {
       process.stdout.write(`fingerprint: ${info.fingerprint}\n`);
       process.stdout.write(`artifact: ${info.artifactHash}\n`);
       process.stdout.write(`signature: ${info.signatureValid ? "valid" : "invalid"}\n`);
+      process.stdout.write(`trust: ${info.trust}\n`);
       if (info.summary) process.stdout.write(`summary: ${info.summary}\n`);
       process.stdout.write("files:\n");
       for (const file of info.files) {
@@ -34,11 +37,37 @@ export async function registryCommand(args, options, root) {
       return 0;
     }
 
+    case "search": {
+      const results = await searchRegistry(root, target ?? "", { registry: options.registry });
+      if (!results.length) {
+        process.stdout.write("No registry packages matched.\n");
+        return 0;
+      }
+      for (const item of results) {
+        process.stdout.write(`${item.name}@${item.latest}  ${item.publisher}  ${item.summary ?? ""}\n`);
+      }
+      return 0;
+    }
+
+    case "trusted": {
+      const publishers = listTrustedPublishers(root);
+      if (!publishers.length) {
+        process.stdout.write("No publishers trusted in this project.\n");
+        return 0;
+      }
+      for (const item of publishers) {
+        const label = item.label ? ` (${item.label})` : "";
+        process.stdout.write(`${item.publisher}${label}  ${item.status}  ${item.fingerprint}\n`);
+      }
+      return 0;
+    }
+
     case "trust": {
       if (!target) throw new Error("registry trust needs namespace/name@version");
       const result = await trustRegistryPackage(root, target, {
         registry: options.registry,
-        fingerprint: options.fingerprint
+        fingerprint: options.fingerprint,
+        label: options.label
       });
       process.stdout.write(`Trusted ${result.publisher} at ${result.fingerprint}\n`);
       return 0;
@@ -80,6 +109,6 @@ export async function registryCommand(args, options, root) {
     }
 
     default:
-      throw new Error("registry command must be one of: use, inspect, trust, distrust, fetch, pack");
+      throw new Error("registry command must be one of: use, search, inspect, trust, trusted, distrust, fetch, pack");
   }
 }

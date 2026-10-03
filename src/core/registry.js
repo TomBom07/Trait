@@ -60,6 +60,7 @@ export async function inspectRegistryPackage(root, spec, { registry = null } = {
     artifactHash: remote.hash,
     publisher: publisher.id,
     fingerprint: fingerprintPublicKey(publisher.publicKey),
+    trust: publisherTrustStatus(root, publisher),
     signatureValid: true,
     files: remote.artifact.payload.package.files.map((file) => ({
       path: file.path,
@@ -70,7 +71,7 @@ export async function inspectRegistryPackage(root, spec, { registry = null } = {
   };
 }
 
-export async function trustRegistryPackage(root, spec, { registry = null, fingerprint } = {}) {
+export async function trustRegistryPackage(root, spec, { registry = null, fingerprint, label = null } = {}) {
   if (!fingerprint) throw new Error("Trust requires --fingerprint from an inspected publisher.");
   const parsed = parseRegistrySpec(spec);
   const remote = await loadRemoteArtifact(root, parsed, { registry });
@@ -90,6 +91,7 @@ export async function trustRegistryPackage(root, spec, { registry = null, finger
     fingerprint: actual,
     publicKey: publisher.publicKey,
     status: "trusted",
+    ...(label ? { label: String(label).trim() } : existing?.label ? { label: existing.label } : {}),
     trustedAt: existing?.trustedAt ?? new Date().toISOString()
   };
   writeTrust(root, trust);
@@ -108,6 +110,37 @@ export function distrustPublisher(root, publisher) {
   };
   writeTrust(root, trust);
   return trust.publishers[publisher];
+}
+
+
+export function listTrustedPublishers(root) {
+  const trust = readTrust(root);
+  return Object.entries(trust.publishers)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([publisher, entry]) => ({
+      publisher,
+      fingerprint: entry.fingerprint,
+      status: entry.status,
+      label: entry.label ?? null,
+      trustedAt: entry.trustedAt ?? null,
+      revokedAt: entry.revokedAt ?? null
+    }));
+}
+
+export async function searchRegistry(root, query = "", { registry = null } = {}) {
+  const base = registryBase(root, registry);
+  const index = await readJsonResource(base, "v1/index.json");
+  validateRegistryIndex(index);
+
+  const needle = String(query ?? "").trim().toLowerCase();
+  return index.packages.filter((item) => {
+    if (!needle) return true;
+    return [
+      item.name,
+      item.summary ?? "",
+      item.publisher ?? ""
+    ].some((value) => String(value).toLowerCase().includes(needle));
+  });
 }
 
 export async function fetchRegistryPackage(root, spec, { registry = null, offline = false } = {}) {
@@ -244,6 +277,7 @@ export function packRegistryPackage(packagePath, { publisher, keyPath, outDir })
     publisher,
     artifactHash: hash
   });
+  updateRegistryIndex(output, manifest, publisher, hash);
 
   return {
     name: manifest.name,
@@ -271,6 +305,64 @@ export function parseRegistrySpec(spec) {
 export function fingerprintPublicKey(publicKey) {
   const der = createPublicKey(publicKey).export({ type: "spki", format: "der" });
   return `sha256:${createHash("sha256").update(der).digest("hex")}`;
+}
+
+function publisherTrustStatus(root, publisher) {
+  const entry = readTrust(root).publishers[publisher.id];
+  const fingerprint = fingerprintPublicKey(publisher.publicKey);
+  if (!entry) return "untrusted";
+  if (entry.fingerprint !== fingerprint || entry.publicKey !== publisher.publicKey) return "key-mismatch";
+  return entry.status === "trusted" ? "trusted" : "revoked";
+}
+
+function updateRegistryIndex(output, manifest, publisher, artifactHash) {
+  const path = join(output, "v1", "index.json");
+  const index = existsSync(path)
+    ? readJson(path, "registry index")
+    : { formatVersion: REGISTRY_FORMAT, packages: [] };
+
+  validateRegistryIndex(index);
+  const packages = index.packages.filter((item) => item.name !== manifest.name);
+  const previous = index.packages.find((item) => item.name === manifest.name);
+  const versions = [
+    ...(previous?.versions ?? []).filter((item) => item.version !== manifest.version),
+    { version: manifest.version, publisher, artifactHash }
+  ].sort((a, b) => a.version.localeCompare(b.version, undefined, { numeric: true }));
+
+  const latest = versions.at(-1);
+  packages.push({
+    name: manifest.name,
+    summary: manifest.summary ?? previous?.summary ?? "",
+    publisher: latest.publisher,
+    latest: latest.version,
+    versions
+  });
+  packages.sort((a, b) => a.name.localeCompare(b.name));
+  writeJson(path, { formatVersion: REGISTRY_FORMAT, packages });
+}
+
+function validateRegistryIndex(index) {
+  if (!index || index.formatVersion !== REGISTRY_FORMAT || !Array.isArray(index.packages)) {
+    throw new Error("Registry index format is invalid.");
+  }
+
+  for (const item of index.packages) {
+    if (!item || !NAME_RE.test(item.name ?? "") || typeof item.latest !== "string") {
+      throw new Error("Registry index contains an invalid package entry.");
+    }
+    if (!PUBLISHER_RE.test(item.publisher ?? "") || !Array.isArray(item.versions)) {
+      throw new Error(`Registry index entry for ${item.name} is invalid.`);
+    }
+    for (const version of item.versions) {
+      if (
+        typeof version?.version !== "string" ||
+        !PUBLISHER_RE.test(version.publisher ?? "") ||
+        !HASH_RE.test(version.artifactHash ?? "")
+      ) {
+        throw new Error(`Registry index version metadata for ${item.name} is invalid.`);
+      }
+    }
+  }
 }
 
 async function loadRemoteArtifact(root, parsed, { registry }) {

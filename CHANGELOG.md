@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+- registry pack now maintains a static searchable `v1/index.json` catalog;
+- added `trait registry search` for package discovery;
+- `registry inspect` reports local publisher trust state;
+- trusted publisher entries can carry a human label;
+- added `trait registry trusted` for auditing pinned publishers.
+
 ## 0.7.0
 
 First complete public prototype of Trait.
