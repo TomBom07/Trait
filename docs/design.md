@@ -18,7 +18,7 @@ That still does not turn a model judgment into a formal proof. The receipt is me
 
 `.trait/lock.json` records what behavior contract was applied and the last successful verification. It is not meant to claim ownership of the resulting source files. Once behavior is integrated into a codebase, normal developers should be able to refactor it without fighting a generated file boundary.
 
-The generated prompts and evidence receipts live under `.trait/runs/` and `.trait/evidence/`. Trait creates `.trait/.gitignore` for those directories; the lockfile remains the small piece of state worth committing.
+Generated prompts under `.trait/runs/` are transient and ignored. Evidence receipts under `.trait/evidence/` are durable: they contain the acceptance verdicts and hashes of the files used as evidence, so they are worth committing alongside `.trait/lock.json`. That lets a fresh clone detect that previously verified evidence has changed without asking a model again.
 
 `remove` is intentionally an agent operation rather than a reverse patch. A reverse patch is only correct if no one has touched the code since installation. The removal contract instead tells the agent what behavior to unwind while preserving shared infrastructure and later work.
 

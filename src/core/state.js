@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 export const TRAIT_DIR = ".trait";
@@ -8,11 +8,7 @@ export function ensureTraitWorkspace(root) {
   const dir = join(root, TRAIT_DIR);
   mkdirSync(join(dir, "runs"), { recursive: true });
   mkdirSync(join(dir, "evidence"), { recursive: true });
-
-  const ignorePath = join(dir, ".gitignore");
-  if (!existsSync(ignorePath)) {
-    writeFileSync(ignorePath, "runs/\nevidence/\n", "utf8");
-  }
+  reconcileIgnoreFile(join(dir, ".gitignore"));
   return dir;
 }
 
@@ -63,5 +59,18 @@ export function forgetTrait(root, name) {
   if (!lock.traits[name]) return false;
   delete lock.traits[name];
   writeLock(root, lock);
+
+  const receiptPath = join(root, TRAIT_DIR, "evidence", `${name.replaceAll("/", "--")}.json`);
+  if (existsSync(receiptPath)) unlinkSync(receiptPath);
   return true;
+}
+
+function reconcileIgnoreFile(path) {
+  const existing = existsSync(path) ? readFileSync(path, "utf8").split(/\r?\n/) : [];
+  const lines = existing.filter((line) => line && line !== "evidence/");
+  if (!lines.includes("runs/")) lines.push("runs/");
+
+  const next = `${lines.join("\n")}\n`;
+  const current = existsSync(path) ? readFileSync(path, "utf8") : "";
+  if (current !== next) writeFileSync(path, next, "utf8");
 }

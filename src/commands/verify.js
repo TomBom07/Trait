@@ -1,4 +1,4 @@
-import { collectEvidence } from "../core/evidence.js";
+import { collectEvidence, inspectEvidenceReceipt } from "../core/evidence.js";
 import { loadManifest } from "../core/manifest.js";
 import { readLock } from "../core/state.js";
 import { verifyProject } from "../core/verify.js";
@@ -33,7 +33,12 @@ export function verifyCommand(name, options, root) {
       continue;
     }
 
-    if (options.checksOnly) continue;
+    if (options.checksOnly) {
+      const cached = inspectEvidenceReceipt(root, traitName, locked);
+      process.stdout.write(`${cached.ok ? "verified" : cached.status}: ${cached.note}.\n`);
+      failed ||= !cached.ok;
+      continue;
+    }
 
     const evidence = collectEvidence(root, loaded, projectVerification);
     process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);

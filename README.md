@@ -52,7 +52,7 @@ A verifier result only counts as `pass` when it points to concrete repository ev
 
 This is not a formal proof system. It is an inspectable evidence layer that is stricter than trusting an agent's completion message and can gradually be replaced by deterministic graders where a behavior allows it.
 
-Generated run prompts and evidence receipts are ignored by `.trait/.gitignore`; `.trait/lock.json` is the small piece of project state intended to survive.
+Generated run prompts stay ignored under `.trait/runs/`. Evidence receipts under `.trait/evidence/` and `.trait/lock.json` are durable project state: commit them if you want verification history to survive clones and CI.
 
 ## Commands
 
@@ -64,7 +64,7 @@ trait remove <trait> [--plan] [--agent codex]
 trait list
 ```
 
-`trait verify` reruns the host checks and evidence pass. `--checks-only` skips the model-assisted evidence pass when you only want the deterministic project scripts.
+`trait verify` reruns the host checks and evidence pass. `--checks-only` skips the new model call, reruns the deterministic project scripts, and checks whether the files cited by the last receipt still have the recorded hashes. `trait list` reports a previously verified trait as `stale` when that evidence has drifted.
 
 `remove` is also agent-driven. Trait deliberately does not pretend it can safely reverse an old patch after a codebase has evolved around it.
 

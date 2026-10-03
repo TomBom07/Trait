@@ -1,3 +1,4 @@
+import { inspectEvidenceReceipt } from "../core/evidence.js";
 import { readLock } from "../core/state.js";
 
 export function listCommand(root) {
@@ -10,8 +11,8 @@ export function listCommand(root) {
 
   const width = Math.max(...entries.map(([name]) => name.length));
   for (const [name, item] of entries.sort(([a], [b]) => a.localeCompare(b))) {
-    const status = item.verification?.status === "pass" ? "verified" : "unverified";
-    process.stdout.write(`${name.padEnd(width)}  ${item.version}  ${status}  ${item.agent ?? "-"}\n`);
+    const evidence = inspectEvidenceReceipt(root, name, item);
+    process.stdout.write(`${name.padEnd(width)}  ${item.version}  ${evidence.status}  ${item.agent ?? "-"}\n`);
   }
   return 0;
 }
