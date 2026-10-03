@@ -53,6 +53,7 @@ export function runEvidenceAgent({
   schemaPath,
   outputPath
 }) {
+  ensureTraitWorkspace(cwd);
   const adapter = getAgentAdapter(agent);
   assertAvailable(adapter);
 
