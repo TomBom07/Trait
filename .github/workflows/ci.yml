@@ -19,3 +19,5 @@ jobs:
       - run: npm install --ignore-scripts
       - run: npm test
       - run: npm run smoke
+      - run: npm run version
+      - run: npm run packcheck

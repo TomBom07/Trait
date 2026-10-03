@@ -24,6 +24,20 @@ Installed auth/passkeys@0.1.0.
 
 A passkey Trait does not ship a generic auth module and ask every project to bend around it. It says what registration and authentication must do, what security properties cannot be lost, what existing behavior must survive, and what evidence should exist when the change is finished. The implementation becomes native to the host project.
 
+## Install from the repository
+
+Trait currently ships as a pre-1.0 repository package rather than a published npm release.
+
+```bash
+git clone https://github.com/TomBom07/Trait.git
+cd Trait
+npm install --ignore-scripts
+npm link
+trait --version
+```
+
+You can also run the CLI directly with `node src/cli.js` while developing.
+
 ## Try the contract before letting an agent edit anything
 
 Trait is early. Start with plan mode so you can see exactly what the implementation agent would receive:
@@ -108,7 +122,7 @@ A package is a small directory with a `trait.json` contract and, optionally, imp
 }
 ```
 
-See [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, and [`docs/registry.md`](docs/registry.md) for the signed registry protocol.
+See [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
 
 ## Why not just use an agent skill?
 

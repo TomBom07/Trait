@@ -15,10 +15,28 @@
   ],
   "scripts": {
     "test": "node --test",
-    "smoke": "node src/cli.js help"
+    "smoke": "node src/cli.js help",
+    "version": "node src/cli.js --version",
+    "packcheck": "npm pack --dry-run"
   },
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TomBom07/Trait.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TomBom07/Trait/issues"
+  },
+  "homepage": "https://github.com/TomBom07/Trait#readme",
+  "keywords": [
+    "ai-agents",
+    "coding-agents",
+    "behavior-contracts",
+    "developer-tools",
+    "codex"
+  ],
+  "preferGlobal": true
 }
