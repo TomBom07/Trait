@@ -70,6 +70,7 @@ function reconcileIgnoreFile(path) {
   const existing = existsSync(path) ? readFileSync(path, "utf8").split(/\r?\n/) : [];
   const lines = existing.filter((line) => line && line !== "evidence/");
   if (!lines.includes("runs/")) lines.push("runs/");
+  if (!lines.includes("cache/")) lines.push("cache/");
 
   const next = `${lines.join("\n")}\n`;
   const current = existsSync(path) ? readFileSync(path, "utf8") : "";
