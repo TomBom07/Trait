@@ -26,7 +26,7 @@ export function addCommand(source, options, root) {
     return 1;
   }
 
-  const evidence = collectEvidence(root, loaded, projectVerification);
+  const evidence = collectEvidence(root, loaded, projectVerification, { agent });
   printEvidence(evidence);
   if (!evidence.ok) {
     process.stderr.write("Behavioral verification is incomplete; lockfile was not changed.\n");

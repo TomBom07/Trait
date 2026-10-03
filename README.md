@@ -58,7 +58,7 @@ Generated run prompts stay ignored under `.trait/runs/`. Evidence receipts under
 
 ```text
 trait add <trait> [--plan] [--agent codex]
-trait verify [trait] [--checks-only]
+trait verify [trait] [--checks-only] [--agent codex]
 trait update [trait] [--plan] [--agent codex]
 trait remove <trait> [--plan] [--agent codex]
 trait list
@@ -113,7 +113,7 @@ This is a `0.x` prototype, not a registry yet.
 
 - Sources are bundled traits or local filesystem packages. A public registry needs provenance, immutable versions, reviewable contents, and signing before arbitrary remote contracts should become the default.
 - Evidence verification is model-assisted when a criterion cannot be established by the host project's own scripts. A file citation and hash make the claim inspectable, not mathematically certain.
-- Codex is the first execution and verification adapter. The agent boundary is intentionally small so other coding agents can be added without changing the package format.
+- Codex is the first built-in execution and verification adapter. Agent-specific probing, implementation execution, read-only verification, sandbox flags, and structured-output handling live behind a small adapter interface, so adding another coding agent does not change the package format or verification receipts.
 - Trait does not yet understand behavioral dependencies or conflicts between traits.
 
 The next milestones are deterministic acceptance graders where possible, then a signed registry and dependency/conflict semantics.
