@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveCachedRegistrySource } from "./registry.js";
 
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const NAME_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/;
@@ -119,6 +120,10 @@ export function loadManifest(source, cwd = process.cwd()) {
 
 export function resolveSource(source, cwd = process.cwd()) {
   if (!source) throw new Error("Missing trait name or path");
+
+  if (source.startsWith("registry:")) {
+    return resolveCachedRegistrySource(source, cwd);
+  }
 
   const looksLikePath = source.startsWith(".") || source.startsWith("/") || source.includes("\\");
   if (looksLikePath || isAbsolute(source)) {

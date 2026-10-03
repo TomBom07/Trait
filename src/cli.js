@@ -3,6 +3,7 @@
 import { addCommand } from "./commands/add.js";
 import { listCommand } from "./commands/list.js";
 import { orderCommand } from "./commands/order.js";
+import { registryCommand } from "./commands/registry.js";
 import { removeCommand } from "./commands/remove.js";
 import { updateCommand } from "./commands/update.js";
 import { verifyCommand } from "./commands/verify.js";
@@ -17,6 +18,12 @@ Usage:
   trait update [namespace/name] [--agent codex] [--plan]
   trait remove <namespace/name> [--agent codex] [--plan]
   trait list\n  trait order <trait...>
+  trait registry use <url|path>
+  trait registry inspect <trait@version> [--registry url]
+  trait registry trust <trait@version> --fingerprint sha256:... [--registry url]
+  trait registry fetch <trait@version> [--registry url] [--offline]
+  trait registry distrust <publisher>
+  trait registry pack <path> --publisher <id> --key <pem> --out <dir>
 
 Examples:
   trait add auth/passkeys --plan
@@ -31,14 +38,20 @@ exists, runs the host project's checks, then verifies each acceptance criterion
 against concrete repository evidence.
 `;
 
-function main(argv) {
+async function main(argv) {
   const [command = "help", ...rest] = argv;
   const parsed = parseArgs(rest);
   const root = findRepoRoot(process.cwd());
   const options = {
     agent: flag(parsed, "agent", undefined),
     plan: flag(parsed, "plan", false),
-    checksOnly: flag(parsed, "checks-only", false)
+    checksOnly: flag(parsed, "checks-only", false),
+    registry: flag(parsed, "registry", undefined),
+    fingerprint: flag(parsed, "fingerprint", undefined),
+    publisher: flag(parsed, "publisher", undefined),
+    key: flag(parsed, "key", undefined),
+    out: flag(parsed, "out", undefined),
+    offline: flag(parsed, "offline", false)
   };
 
   switch (command) {
@@ -55,6 +68,8 @@ function main(argv) {
       return listCommand(root);
     case "order":
       return orderCommand(parsed.positionals, root);
+    case "registry":
+      return registryCommand(parsed.positionals, options, root);
     case "remove":
       if (!parsed.positionals[0]) throw new Error("remove needs a trait name");
       return removeCommand(parsed.positionals[0], options, root);
@@ -66,7 +81,7 @@ function main(argv) {
 }
 
 try {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 } catch (error) {
   process.stderr.write(`trait: ${error.message}\n`);
   process.exitCode = 1;

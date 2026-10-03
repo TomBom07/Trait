@@ -32,6 +32,7 @@ test("evidence receipts are durable while run prompts stay ignored", () => {
   ensureTraitWorkspace(root);
   const lines = readFileSync(ignorePath, "utf8").trim().split(/\r?\n/);
   assert(lines.includes("runs/"));
+  assert(lines.includes("cache/"));
   assert(lines.includes("custom/"));
   assert(!lines.includes("evidence/"));
 });

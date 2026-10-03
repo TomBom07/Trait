@@ -42,6 +42,8 @@ trait add api/idempotency --plan
 
 When the Codex CLI is installed and authenticated, omit `--plan` to apply the behavior.
 
+Registry packages are intentionally not fetched implicitly. A remote package goes through `registry inspect → trust → fetch` before `trait add registry:…` can use the verified local cache.
+
 ## Implementation and verification are separate
 
 Trait does not let the coding pass certify itself.
@@ -63,6 +65,12 @@ trait update [trait] [--plan] [--agent codex]
 trait remove <trait> [--plan] [--agent codex]
 trait list
 trait order <trait...>
+trait registry use <url>
+trait registry inspect <trait@version>
+trait registry trust <trait@version> --fingerprint sha256:...
+trait registry fetch <trait@version> [--offline]
+trait registry distrust <publisher>
+trait registry pack <path> --publisher <id> --key <pem> --out <dir>
 ```
 
 `trait verify` reruns the host checks and evidence pass. `--checks-only` skips the new model call, reruns the deterministic project scripts, and checks whether the files cited by the last receipt still have the recorded hashes. `trait list` reports a previously verified trait as `stale` when that evidence has drifted.
@@ -100,7 +108,7 @@ A package is a small directory with a `trait.json` contract and, optionally, imp
 }
 ```
 
-See [`docs/format.md`](docs/format.md) for the package contract and [`docs/design.md`](docs/design.md) for the reasoning behind the CLI.
+See [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, and [`docs/registry.md`](docs/registry.md) for the signed registry protocol.
 
 ## Why not just use an agent skill?
 
@@ -110,11 +118,11 @@ The hard part is not prompting an agent to write code. The hard part is making r
 
 ## Current limits
 
-This is a `0.x` prototype, not a registry yet.
+This is still a `0.x` prototype, but the trust model now has a concrete registry protocol.
 
-- Sources are bundled traits or local filesystem packages. A public registry needs provenance, immutable versions, reviewable contents, and signing before arbitrary remote contracts should become the default.
+- Registry packages are explicit rather than the default source: exact versions are content-addressed, Ed25519-signed, fingerprint-pinned, fully reviewable before trust, and cached locally.
 - Acceptance criteria can use deterministic `project-script` graders. A remote Trait cannot supply arbitrary shell commands; it can only require a named script in the host project. Model-assisted evidence is used only for remaining criteria.
 - Codex is the first built-in execution and verification adapter. Agent-specific probing, implementation execution, read-only verification, sandbox flags, and structured-output handling live behind a small adapter interface, so adding another coding agent does not change the package format or verification receipts.
 - Trait supports explicit trait requirements, semver-style ranges, conflicts, and capability requirements. The resolver is deliberately small rather than a general-purpose SAT solver.
 
-The next major milestone is a signed, content-addressed registry.
+The remaining work before a 1.0-style release is mostly hardening: broader integration fixtures, registry hosting/discovery, stronger publisher identity UX, and more real-world Trait packages.

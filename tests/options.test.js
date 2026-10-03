@@ -14,3 +14,16 @@ test("parses boolean and valued flags", () => {
   assert.equal(flag(parsed, "plan", false), true);
   assert.equal(flag(parsed, "agent"), "codex");
 });
+
+
+test("parses registry valued flags separately from boolean flags", () => {
+  const parsed = parseArgs([
+    "demo/cache@1.0.0",
+    "--registry", "https://traits.example/",
+    "--fingerprint", "sha256:abc",
+    "--offline"
+  ]);
+  assert.equal(flag(parsed, "registry"), "https://traits.example/");
+  assert.equal(flag(parsed, "fingerprint"), "sha256:abc");
+  assert.equal(flag(parsed, "offline", false), true);
+});
