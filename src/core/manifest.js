@@ -6,6 +6,7 @@ import { resolveCachedRegistrySource } from "./registry.js";
 
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const NAME_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/;
+const VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
 
 export function validateManifest(value) {
   const errors = [];
@@ -16,7 +17,7 @@ export function validateManifest(value) {
 
   if (value.schemaVersion !== 1) errors.push("schemaVersion must be 1");
   if (!NAME_RE.test(value.name ?? "")) errors.push("name must look like namespace/name");
-  if (typeof value.version !== "string" || !/^\d+\.\d+\.\d+/.test(value.version)) {
+  if (typeof value.version !== "string" || !VERSION_RE.test(value.version)) {
     errors.push("version must be semver-like (for example 0.1.0)");
   }
   if (typeof value.summary !== "string" || value.summary.trim().length < 12) {

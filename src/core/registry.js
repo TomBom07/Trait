@@ -9,7 +9,6 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   writeFileSync
 } from "node:fs";
 import {
@@ -27,6 +26,7 @@ const MAX_RESOURCE_BYTES = 5 * 1024 * 1024;
 const HASH_RE = /^sha256:([a-f0-9]{64})$/;
 const NAME_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/;
 const PUBLISHER_RE = /^[a-z0-9][a-z0-9._-]*$/;
+const VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
 
 export function configureRegistry(root, registry) {
   const normalized = normalizeRegistryBase(registry);
@@ -239,16 +239,21 @@ export function packRegistryPackage(packagePath, { publisher, keyPath, outDir })
   if (!existsSync(manifestPath)) throw new Error(`No trait.json found at ${baseDir}.`);
 
   const manifest = readJson(manifestPath, "trait manifest");
-  if (!NAME_RE.test(manifest?.name ?? "") || typeof manifest?.version !== "string") {
-    throw new Error("trait.json must contain a valid name and version before packing.");
+  if (!NAME_RE.test(manifest?.name ?? "") || typeof manifest?.version !== "string" || !VERSION_RE.test(manifest.version)) {
+    throw new Error("trait.json must contain a valid name and exact semantic version before packing.");
   }
 
-  const privateKey = readFileSync(resolve(keyPath), "utf8");
+  const resolvedKeyPath = resolve(keyPath);
+  if (isInside(baseDir, resolvedKeyPath)) {
+    throw new Error("Signing keys must live outside the Trait package directory so they cannot be published accidentally.");
+  }
+
+  const privateKey = readFileSync(resolvedKeyPath, "utf8");
   const publicKey = createPublicKey(privateKey)
     .export({ type: "spki", format: "pem" })
     .toString();
 
-  const files = collectPackageFiles(baseDir);
+  const files = collectPackageFiles(baseDir, manifest);
   const payload = {
     formatVersion: REGISTRY_FORMAT,
     publisher: { id: publisher, publicKey },
@@ -262,6 +267,9 @@ export function packRegistryPackage(packagePath, { publisher, keyPath, outDir })
   const hash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
   const signature = signBytes(null, bytes, privateKey).toString("base64");
   const artifact = { payload, signature };
+  if (Buffer.byteLength(JSON.stringify(artifact), "utf8") > MAX_RESOURCE_BYTES) {
+    throw new Error(`Registry artifact exceeds ${MAX_RESOURCE_BYTES} bytes.`);
+  }
 
   const output = resolve(outDir);
   const artifactPath = join(output, "v1", "artifacts", `${hash.slice("sha256:".length)}.json`);
@@ -296,7 +304,7 @@ export function parseRegistrySpec(spec) {
   if (at <= 0) throw new Error('Registry specs must look like "namespace/name@1.2.3".');
   const name = cleaned.slice(0, at);
   const version = cleaned.slice(at + 1);
-  if (!NAME_RE.test(name) || !/^\d+\.\d+\.\d+(?:[-+].*)?$/.test(version)) {
+  if (!NAME_RE.test(name) || !VERSION_RE.test(version)) {
     throw new Error('Registry specs must use an exact version, for example "auth/passkeys@1.2.3".');
   }
   return { name, version };
@@ -457,30 +465,33 @@ function validateFiles(files) {
   }
 }
 
-function collectPackageFiles(baseDir) {
-  const output = [];
+function collectPackageFiles(baseDir, manifest) {
+  const paths = ["trait.json"];
+  if (manifest.guidance) paths.push(manifest.guidance);
 
-  function visit(dir) {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === ".git" || entry.name === ".trait") continue;
-      const absolute = join(dir, entry.name);
-      const relativePath = relative(baseDir, absolute).replaceAll("\\", "/");
-      const stat = lstatSync(absolute);
-      if (stat.isSymbolicLink()) throw new Error(`Registry packages cannot contain symlinks: ${relativePath}.`);
-      if (stat.isDirectory()) {
-        visit(absolute);
-      } else if (stat.isFile()) {
-        const content = readFileSync(absolute);
-        output.push({
-          path: normalizePackagePath(relativePath),
-          sha256: `sha256:${createHash("sha256").update(content).digest("hex")}`,
-          contentBase64: content.toString("base64")
-        });
-      }
+  const output = [];
+  for (const requested of [...new Set(paths)]) {
+    const path = normalizePackagePath(requested);
+    const absolute = resolve(baseDir, path);
+    if (!isInside(baseDir, absolute)) {
+      throw new Error(`Trait package file escapes its directory: ${path}.`);
     }
+    if (!existsSync(absolute)) {
+      throw new Error(`Trait package file is missing: ${path}.`);
+    }
+
+    const stat = lstatSync(absolute);
+    if (stat.isSymbolicLink()) throw new Error(`Registry packages cannot contain symlinked contract files: ${path}.`);
+    if (!stat.isFile()) throw new Error(`Trait package entry is not a file: ${path}.`);
+
+    const content = readFileSync(absolute);
+    output.push({
+      path,
+      sha256: `sha256:${createHash("sha256").update(content).digest("hex")}`,
+      contentBase64: content.toString("base64")
+    });
   }
 
-  visit(baseDir);
   output.sort((a, b) => a.path.localeCompare(b.path));
   return output;
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -151,4 +151,49 @@ test("registry inspect reports revoked publisher state", async () => {
   const info = await inspectRegistryPackage(root, "demo/cache@1.0.0");
   assert.equal(info.trust, "revoked");
   assert.equal(listTrustedPublishers(root)[0].status, "revoked");
+});
+
+
+test("registry pack refuses a signing key stored inside the package", () => {
+  const packageDir = mkdtempSync(join(tmpdir(), "trait-registry-package-"));
+  const registryDir = mkdtempSync(join(tmpdir(), "trait-registry-static-"));
+  const { privateKey } = generateKeyPairSync("ed25519");
+
+  writeFileSync(join(packageDir, "trait.json"), JSON.stringify({
+    schemaVersion: 1,
+    name: "demo/key-safety",
+    version: "1.0.0",
+    summary: "A package used to verify signing key boundaries.",
+    intent: "The packer must never include the publisher private signing key in a registry artifact.",
+    rules: [{ id: "key.safe", text: "Signing keys stay outside the published package." }],
+    invariants: [{ id: "key.private", text: "Private key material remains private." }],
+    acceptance: [{ id: "accept.key.safe", text: "Packing rejects an in-package signing key." }]
+  }));
+
+  const keyPath = join(packageDir, "publisher.pem");
+  writeFileSync(
+    keyPath,
+    privateKey.export({ type: "pkcs8", format: "pem" }).toString()
+  );
+
+  assert.throws(
+    () => packRegistryPackage(packageDir, {
+      publisher: "demo",
+      keyPath,
+      outDir: registryDir
+    }),
+    /outside the Trait package directory/
+  );
+});
+
+test("registry artifacts include only contract files referenced by the manifest", () => {
+  const { registryDir, packed } = fixture();
+  const hash = packed.artifactHash.slice("sha256:".length);
+  const artifact = JSON.parse(
+    readFileSync(join(registryDir, "v1", "artifacts", `${hash}.json`), "utf8")
+  );
+  assert.deepEqual(
+    artifact.payload.package.files.map((file) => file.path),
+    ["IMPLEMENTATION.md", "trait.json"]
+  );
 });
