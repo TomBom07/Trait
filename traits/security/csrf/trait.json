@@ -1,0 +1,80 @@
+{
+  "$schema": "../../../schema/trait.schema.json",
+  "schemaVersion": 1,
+  "name": "security/csrf",
+  "version": "0.1.0",
+  "summary": "Protect cookie-authenticated state-changing web requests from cross-site request forgery.",
+  "intent": "Browser requests that rely on automatically attached credentials cannot perform protected state changes from an untrusted origin, while legitimate application requests and non-cookie API authentication keep working.",
+  "rules": [
+    {
+      "id": "security.csrf.protected-methods",
+      "text": "State-changing browser routes that rely on cookie credentials require a server-verifiable CSRF defense."
+    },
+    {
+      "id": "security.csrf.valid-request",
+      "text": "Legitimate same-application requests can obtain or present the value or origin proof required by the chosen CSRF defense."
+    },
+    {
+      "id": "security.csrf.failure",
+      "text": "A missing, invalid, or mismatched CSRF proof is rejected before the protected state change runs."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "security.csrf.safe-methods",
+      "text": "Read-only safe-method requests are not made state-changing merely to work around CSRF enforcement."
+    },
+    {
+      "id": "security.csrf.api-auth",
+      "text": "Non-cookie API authentication paths are not forced into a browser CSRF mechanism when credentials are not automatically attached cross-site."
+    },
+    {
+      "id": "security.csrf.session",
+      "text": "Existing session creation, rotation, and logout semantics remain intact."
+    }
+  ],
+  "security": [
+    {
+      "id": "security.csrf.secret",
+      "text": "Any CSRF secret or token entropy is generated server-side or cryptographically and is not predictable from public account data."
+    },
+    {
+      "id": "security.csrf.origin",
+      "text": "Origin or referer validation, when used, compares against trusted configured origins rather than request-controlled host values."
+    },
+    {
+      "id": "security.csrf.cors",
+      "text": "CORS configuration is not treated as the sole CSRF defense for cookie-authenticated state changes."
+    },
+    {
+      "id": "security.csrf.samesite",
+      "text": "Cookie SameSite settings are treated as defense in depth and remain compatible with the application's legitimate cross-site flows."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "accept.csrf.valid",
+      "text": "A legitimate protected browser request with the required proof succeeds and performs the state change."
+    },
+    {
+      "id": "accept.csrf.missing",
+      "text": "The same protected request without CSRF proof is rejected before the state change executes."
+    },
+    {
+      "id": "accept.csrf.mismatch",
+      "text": "A proof bound to the wrong session, secret, or origin is rejected."
+    },
+    {
+      "id": "accept.csrf.non-cookie",
+      "text": "A non-cookie API authentication path keeps its intended behavior without receiving unnecessary CSRF coupling."
+    }
+  ],
+  "verify": {
+    "scripts": [
+      "test",
+      "typecheck",
+      "lint"
+    ]
+  },
+  "guidance": "IMPLEMENTATION.md"
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "../../../schema/trait.schema.json",
+  "schemaVersion": 1,
+  "name": "jobs/retry-safety",
+  "version": "0.1.0",
+  "summary": "Make background jobs safe under duplicate delivery, retries, and partial failure.",
+  "intent": "A background job can be delivered more than once or retried after interruption without duplicating protected side effects, while transient failures still retry and permanent failures remain observable.",
+  "rules": [
+    {
+      "id": "jobs.retry.identity",
+      "text": "Each logical job has a stable identity or idempotency key that survives retries of the same work."
+    },
+    {
+      "id": "jobs.retry.duplicate",
+      "text": "A duplicate delivery cannot repeat a protected side effect that has already completed successfully."
+    },
+    {
+      "id": "jobs.retry.transient",
+      "text": "Transient failures use the host queue's retry mechanism with an explicit retry or backoff policy."
+    },
+    {
+      "id": "jobs.retry.exhausted",
+      "text": "A job that exhausts retries remains observable through the host system's failed-job, dead-letter, or equivalent mechanism."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "jobs.retry.queue",
+      "text": "The implementation uses the repository's existing queue ownership and worker lifecycle instead of adding a parallel scheduler without need."
+    },
+    {
+      "id": "jobs.retry.visibility",
+      "text": "Failures are not swallowed merely to make the queue consider the job successful."
+    },
+    {
+      "id": "jobs.retry.unrelated",
+      "text": "Jobs not opted into this behavior keep their existing retry semantics."
+    }
+  ],
+  "security": [
+    {
+      "id": "jobs.retry.atomic",
+      "text": "Idempotency state and protected side effects cannot diverge in a way that permits a completed effect to execute again after a crash."
+    },
+    {
+      "id": "jobs.retry.payload",
+      "text": "A reused logical job identity cannot silently authorize materially different work without an explicit conflict or versioning rule."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "accept.jobs.duplicate",
+      "text": "Delivering the same logical job twice executes the protected side effect once."
+    },
+    {
+      "id": "accept.jobs.transient",
+      "text": "A transient failure is retried according to the configured policy and can subsequently complete."
+    },
+    {
+      "id": "accept.jobs.partial-failure",
+      "text": "A simulated interruption around the protected side effect does not produce a duplicate completed effect after retry."
+    },
+    {
+      "id": "accept.jobs.exhausted",
+      "text": "A permanently failing job reaches the host system's observable terminal-failure path after the configured attempts."
+    }
+  ],
+  "verify": {
+    "scripts": [
+      "test",
+      "typecheck",
+      "lint"
+    ]
+  },
+  "guidance": "IMPLEMENTATION.md"
+}
