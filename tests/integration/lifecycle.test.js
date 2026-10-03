@@ -75,28 +75,23 @@ function makeFixture() {
 function installFeature(root) {
   writeFileSync(join(root, "feature.js"), "export function featureFlag() { return true; }\n", "utf8");
   writeFileSync(
-    join(root, "feature.test.js"),
+    join(root, "feature-check.js"),
     [
-      'import test from "node:test";',
-      'import assert from "node:assert/strict";',
       'import { featureFlag } from "./feature.js";',
-      "",
-      'test("feature flag is enabled", () => {',
-      "  assert.equal(featureFlag(), true);",
-      "});",
+      "if (featureFlag() !== true) process.exit(1);",
       ""
     ].join("\n"),
     "utf8"
   );
 
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  pkg.scripts["trait:feature-flag"] = "node --test feature.test.js";
+  pkg.scripts["trait:feature-flag"] = "node feature-check.js";
   writeJson(join(root, "package.json"), pkg);
 }
 
 function removeFeature(root) {
   rmSync(join(root, "feature.js"), { force: true });
-  rmSync(join(root, "feature.test.js"), { force: true });
+  rmSync(join(root, "feature-check.js"), { force: true });
 
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   delete pkg.scripts["trait:feature-flag"];
