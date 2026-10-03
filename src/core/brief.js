@@ -2,6 +2,15 @@ function bullets(items) {
   return items.map((item) => `- [${item.id}] ${item.text}`).join("\n");
 }
 
+function acceptanceBullets(items) {
+  return items.map((item) => {
+    const grader = item.grader?.type === "project-script"
+      ? ` (deterministic grader: project script "${item.grader.script}")`
+      : "";
+    return `- [${item.id}] ${item.text}${grader}`;
+  }).join("\n");
+}
+
 function repoSummary(repo) {
   const lines = [];
   if (repo.projectName) lines.push(`Project: ${repo.projectName}`);
@@ -32,8 +41,8 @@ These must remain true after the implementation.
 ${bullets(manifest.invariants)}
 
 ${manifest.security?.length ? `## Security constraints\n${bullets(manifest.security)}\n\n` : ""}## Acceptance criteria
-Add or update project-native tests where that is useful. Each criterion needs concrete evidence in the resulting code or tests.
-${bullets(manifest.acceptance)}
+Add or update project-native tests where that is useful. Each criterion needs concrete evidence in the resulting code or tests. When a criterion names a deterministic project-script grader, ensure that exact package script exists and directly exercises the criterion.
+${acceptanceBullets(manifest.acceptance)}
 
 ${guidance ? `## Implementation notes\n${guidance}\n\n` : ""}## Working rules
 - Follow the repository's existing naming, layout, formatting, and dependency choices.

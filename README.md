@@ -46,11 +46,11 @@ When the Codex CLI is installed and authenticated, omit `--plan` to apply the be
 
 Trait does not let the coding pass certify itself.
 
-`trait add` first lets Codex adapt the contract to the repository. Trait then runs the host project's requested scripts. If those pass, a second Codex invocation runs **read-only** and evaluates every acceptance ID against the resulting repository.
+`trait add` first lets the selected coding agent adapt the contract to the repository. Trait then runs the host project's requested scripts. Acceptance criteria can opt into a safe deterministic grader that names an existing project script; those criteria are decided without a model. Only criteria that remain unresolved are sent to a second, **read-only** verifier pass.
 
 A verifier result only counts as `pass` when it points to concrete repository evidence. Trait independently checks that the cited file exists, validates the line range, and records a SHA-256 of the file in `.trait/evidence/`. Bad or invented evidence becomes `unknown`, which prevents installation from being recorded as verified.
 
-This is not a formal proof system. It is an inspectable evidence layer that is stricter than trusting an agent's completion message and can gradually be replaced by deterministic graders where a behavior allows it.
+This is not a formal proof system. Deterministic project-script graders are preferred where a behavior can be exercised mechanically; the inspectable model-evidence layer is the fallback for criteria that cannot yet be graded that way.
 
 Generated run prompts stay ignored under `.trait/runs/`. Evidence receipts under `.trait/evidence/` and `.trait/lock.json` are durable project state: commit them if you want verification history to survive clones and CI.
 
@@ -112,8 +112,8 @@ The hard part is not prompting an agent to write code. The hard part is making r
 This is a `0.x` prototype, not a registry yet.
 
 - Sources are bundled traits or local filesystem packages. A public registry needs provenance, immutable versions, reviewable contents, and signing before arbitrary remote contracts should become the default.
-- Evidence verification is model-assisted when a criterion cannot be established by the host project's own scripts. A file citation and hash make the claim inspectable, not mathematically certain.
+- Acceptance criteria can use deterministic `project-script` graders. A remote Trait cannot supply arbitrary shell commands; it can only require a named script in the host project. Model-assisted evidence is used only for remaining criteria.
 - Codex is the first built-in execution and verification adapter. Agent-specific probing, implementation execution, read-only verification, sandbox flags, and structured-output handling live behind a small adapter interface, so adding another coding agent does not change the package format or verification receipts.
 - Trait does not yet understand behavioral dependencies or conflicts between traits.
 
-The next milestones are deterministic acceptance graders where possible, then a signed registry and dependency/conflict semantics.
+The next milestones are a signed registry and dependency/conflict semantics.

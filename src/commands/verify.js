@@ -1,4 +1,5 @@
 import { collectEvidence, inspectEvidenceReceipt } from "../core/evidence.js";
+import { runAcceptanceGraders } from "../core/graders.js";
 import { loadManifest } from "../core/manifest.js";
 import { readLock } from "../core/state.js";
 import { verifyProject } from "../core/verify.js";
@@ -33,15 +34,17 @@ export function verifyCommand(name, options, root) {
       continue;
     }
 
+    const graderResults = runAcceptanceGraders(root, loaded.manifest, { projectVerification });
+
     if (options.checksOnly) {
-      const cached = inspectEvidenceReceipt(root, traitName, locked);
+      const cached = inspectEvidenceReceipt(root, traitName, locked, { graderResults });
       process.stdout.write(`${cached.ok ? "verified" : cached.status}: ${cached.note}.\n`);
       failed ||= !cached.ok;
       continue;
     }
 
     const agent = options.agent ?? locked.agent ?? "codex";
-    const evidence = collectEvidence(root, loaded, projectVerification, { agent });
+    const evidence = collectEvidence(root, loaded, projectVerification, { agent, graderResults });
     process.stdout.write(`${evidence.ok ? "verified" : "not verified"}: ${evidence.note}\n`);
     if (evidence.receipt) {
       for (const check of evidence.receipt.checks) {

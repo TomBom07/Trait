@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildEvidenceSchema, evidenceReceiptPath, inspectEvidenceReceipt, normalizeEvidence } from "../src/core/evidence.js";
+import { buildEvidenceSchema, collectEvidence, evidenceReceiptPath, inspectEvidenceReceipt, normalizeEvidence } from "../src/core/evidence.js";
 
 const manifest = {
   name: "api/idempotency",
@@ -123,4 +123,32 @@ test("recorded evidence becomes stale when a cited file changes", () => {
   const stale = inspectEvidenceReceipt(root, manifest.name, locked);
   assert.equal(stale.status, "stale");
   assert.match(stale.note, /changed since verification/);
+});
+
+
+test("fully deterministic criteria skip the model verifier", () => {
+  const root = mkdtempSync(join(tmpdir(), "trait-evidence-"));
+  const loaded = {
+    manifest,
+    checksum: "contract-sha"
+  };
+  const graders = {
+    checks: manifest.acceptance.map((criterion) => ({
+      id: criterion.id,
+      status: "pass",
+      grader: { type: "project-script", script: "trait:acceptance", exitCode: 0, reused: true },
+      notes: "Dedicated acceptance script passed."
+    }))
+  };
+
+  const result = collectEvidence(
+    root,
+    loaded,
+    { results: [{ script: "trait:acceptance", status: 0 }] },
+    { agent: "missing-on-purpose", graderResults: graders }
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.receipt.checks.every((check) => check.grader?.type === "project-script"), true);
+  assert.equal(result.receipt.checks.every((check) => check.evidence.length === 0), true);
 });
