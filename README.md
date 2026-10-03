@@ -128,7 +128,7 @@ A package is a small directory with a `trait.json` contract and, optionally, imp
 }
 ```
 
-See [`docs/v1.md`](docs/v1.md) for the compatibility boundary, [`docs/catalog.md`](docs/catalog.md) for the bundled contracts, [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
+See [`docs/v1.md`](docs/v1.md) for the compatibility boundary, [`docs/catalog.md`](docs/catalog.md) for the bundled contracts, [`docs/format.md`](docs/format.md) for the package contract, [`docs/design.md`](docs/design.md) for the reasoning behind the CLI, [`docs/registry.md`](docs/registry.md) for the signed registry protocol, [`docs/releasing.md`](docs/releasing.md) for reproducible releases, and [`SECURITY.md`](SECURITY.md) before changing trust or execution boundaries.
 
 ## Why not just use an agent skill?
 
