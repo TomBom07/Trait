@@ -9,7 +9,7 @@ const packageJson = JSON.parse(
 const changelog = readFileSync(
   new URL("../CHANGELOG.md", import.meta.url),
   "utf8"
-);
+).replace(/\r\n/g, "\n");
 
 test("runtime version matches package metadata", () => {
   assert.equal(VERSION, packageJson.version);
